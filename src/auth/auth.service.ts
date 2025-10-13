@@ -120,13 +120,15 @@ export class AuthService {
   }
 
   async refresh(res: Response, userId: string, rt: string) {
-    console.log({ rt });
-
     const user = await this.usersService.findOneForAuth(userId);
-    if (!user || !user.refreshToken) throw new Error('Acceso denegado');
+    if (!user || !user.refreshToken) {
+      throw new UnauthorizedException(
+        'Acceso denegado - user | user.refreshToken',
+      );
+    }
 
     const isMatch = await bcrypt.compare(rt, user.refreshToken);
-    if (!isMatch) throw new Error('Acceso denegado');
+    if (!isMatch) throw new UnauthorizedException('Acceso denegado - isMatch');
 
     const { accessToken, refreshToken } = await this.signTokens(
       user.id,

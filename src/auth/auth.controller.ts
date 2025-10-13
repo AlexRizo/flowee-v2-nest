@@ -39,6 +39,7 @@ export class AuthController {
     @Res({ passthrough: true }) res: Response,
     @GetUser() user: UserPayload,
   ) {
+    console.log(user);
     return this.authService.refresh(res, user.id, user.refreshToken);
   }
 }

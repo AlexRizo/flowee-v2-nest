@@ -12,7 +12,7 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
     if (err) throw err;
 
     if (!user) {
-      const message = info?.message || 'El token no es válido';
+      const message = info?.message ?? 'El token no es válido';
 
       throw new UnauthorizedException(message);
     }
