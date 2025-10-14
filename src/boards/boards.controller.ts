@@ -1,9 +1,17 @@
-import { Controller, Get, Post, Body, Param } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Param,
+  ParseUUIDPipe,
+} from '@nestjs/common';
 import { BoardsService } from './boards.service';
 import { CreateBoardDto } from './dto/create-board.dto';
 import { Auth } from 'src/auth/decorators/auth.decorator';
 import { Role } from '@prisma/client';
 import { GetUser } from 'src/auth/decorators/get-user.decorator';
+import { AssignManyBoardsDto } from './dto/assign-many-boards.dto';
 
 @Controller('boards')
 export class BoardsController {
@@ -13,6 +21,21 @@ export class BoardsController {
   @Post()
   create(@Body() createBoardDto: CreateBoardDto) {
     return this.boardsService.create(createBoardDto);
+  }
+
+  @Auth(Role.ADMIN, Role.SUPER_ADMIN)
+  @Post(':boardId/assign')
+  assignUser(
+    @Body('userId', ParseUUIDPipe) userId: string,
+    @Param('boardId', ParseUUIDPipe) boardId: string,
+  ) {
+    return this.boardsService.assignUserToBoard(boardId, userId);
+  }
+
+  @Auth(Role.ADMIN, Role.SUPER_ADMIN)
+  @Post('assign-many')
+  assignMany(@Body() assignManyBoardsDto: AssignManyBoardsDto) {
+    return this.boardsService.assignManyBoards(assignManyBoardsDto);
   }
 
   @Auth(Role.ADMIN, Role.SUPER_ADMIN, Role.READER)

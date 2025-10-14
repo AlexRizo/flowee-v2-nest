@@ -10,6 +10,7 @@ import { PrismaService } from 'src/prisma/prisma.service';
 import { UsersService } from 'src/users/users.service';
 import { Board, Prisma, Role } from '@prisma/client';
 import { isUUID } from 'class-validator';
+import { AssignManyBoardsDto } from './dto/assign-many-boards.dto';
 
 @Injectable()
 export class BoardsService {
@@ -32,6 +33,43 @@ export class BoardsService {
     } catch (error) {
       this.handleDBErrors(error);
     }
+  }
+
+  async assignUserToBoard(boardId: string, userId: string) {
+    await this.findOne(boardId);
+    await this.usersService.findOne(userId);
+
+    try {
+      await this.prisma.userBoard.create({
+        data: { userId, boardId },
+      });
+
+      return { message: 'Tablero asignado correctamente' };
+    } catch (error) {
+      this.handleDBErrors(error);
+    }
+  }
+
+  async assignManyBoards({ userId, boardIds }: AssignManyBoardsDto) {
+    await this.usersService.findOne(userId);
+
+    const verifyBoards = await this.prisma.board.findMany({
+      where: { id: { in: boardIds } },
+      select: { id: true },
+    });
+
+    if (verifyBoards.length !== boardIds.length) {
+      throw new NotFoundException(
+        'Algunos tableros no existen. Verifica la información',
+      );
+    }
+
+    await this.prisma.userBoard.createMany({
+      data: boardIds.map(boardId => ({ userId, boardId })),
+      skipDuplicates: true,
+    });
+
+    return { message: 'Tableros asignados correctamente' };
   }
 
   async findMyBoards(userId: string) {
@@ -73,6 +111,8 @@ export class BoardsService {
 
   async findOne(term: string) {
     const where = isUUID(term) ? { id: term } : { slug: term };
+
+    console.log(where);
 
     const board = await this.prisma.board.findUnique({ where });
 

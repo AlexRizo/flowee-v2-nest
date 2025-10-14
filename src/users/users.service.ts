@@ -67,9 +67,10 @@ export class UsersService {
     return user;
   }
 
-  async findOneForAuth(email: string) {
+  async findOneForAuth(term: string) {
+    const where = isUUID(term) ? { id: term } : { email: term };
     const user = await this.prisma.user.findUnique({
-      where: { email, isActive: true },
+      where: { ...where, isActive: true },
     });
 
     return user;

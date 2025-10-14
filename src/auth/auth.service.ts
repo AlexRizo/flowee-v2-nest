@@ -121,6 +121,7 @@ export class AuthService {
 
   async refresh(res: Response, userId: string, rt: string) {
     const user = await this.usersService.findOneForAuth(userId);
+
     if (!user || !user.refreshToken) {
       throw new UnauthorizedException(
         'Acceso denegado - user | user.refreshToken',
