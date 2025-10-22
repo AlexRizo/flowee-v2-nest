@@ -39,6 +39,14 @@ export class BoardsService {
     await this.findOne(boardId);
     await this.usersService.findOne(userId);
 
+    const existingAssignment = await this.prisma.userBoard.findFirst({
+      where: { boardId, userId },
+    });
+
+    if (existingAssignment) {
+      throw new ConflictException('El usuario ya está asignado a este tablero');
+    }
+
     try {
       await this.prisma.userBoard.create({
         data: { userId, boardId },

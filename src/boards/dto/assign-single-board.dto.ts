@@ -1,6 +1,6 @@
 import { IsNotEmpty, IsString, IsUUID } from 'class-validator';
 
-export class AssignSingleBoardsDto {
+export class AssignSingleBoardDto {
   @IsString()
   @IsNotEmpty()
   @IsUUID()

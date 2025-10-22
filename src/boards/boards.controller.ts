@@ -12,6 +12,7 @@ import { Auth } from 'src/auth/decorators/auth.decorator';
 import { Role } from '@prisma/client';
 import { GetUser } from 'src/auth/decorators/get-user.decorator';
 import { AssignManyBoardsDto } from './dto/assign-many-boards.dto';
+import { AssignSingleBoardDto } from './dto/assign-single-board.dto';
 
 @Controller('boards')
 export class BoardsController {
@@ -26,7 +27,7 @@ export class BoardsController {
   @Auth(Role.ADMIN, Role.SUPER_ADMIN)
   @Post(':boardId/assign')
   assignUser(
-    @Body('userId', ParseUUIDPipe) userId: string,
+    @Body() { userId }: AssignSingleBoardDto,
     @Param('boardId', ParseUUIDPipe) boardId: string,
   ) {
     return this.boardsService.assignUserToBoard(boardId, userId);

@@ -8,7 +8,7 @@ import { Role } from '@prisma/client';
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
-  @Auth(Role.ADMIN)
+  @Auth(Role.ADMIN, Role.SUPER_ADMIN)
   @Post()
   create(@Body() createUserDto: CreateUserDto) {
     return this.usersService.create(createUserDto);

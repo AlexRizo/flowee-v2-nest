@@ -23,29 +23,37 @@ enum Role {
   READER
 }
 
+// ? Usuarios
+
 model User {
-  id           String      @id @default(uuid())
-  email        String      @unique
-  username     String      @unique
-  avatar       String?
-  role         Role        @default(READER)
-  name         String
-  password     String
-  isActive     Boolean     @default(true)
-  refreshToken String?
-  createdAt    DateTime    @default(now())
-  updatedAt    DateTime    @updatedAt
-  UserBoard    UserBoard[]
+  id            String      @id @default(uuid())
+  name          String
+  email         String      @unique
+  username      String      @unique
+  avatar        String?
+  role          Role        @default(READER)
+  password      String
+  isActive      Boolean     @default(true)
+  refreshToken  String?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  userBoard     UserBoard[]
+  authorTasks   Task[]      @relation("AuthorTasks")
+  assignedTasks Task[]      @relation("AssignedTasks")
 }
+
+// ? Tableros
 
 model Board {
   id        String      @id @default(uuid())
   name      String
   slug      String      @unique
   prefix    String
+  color     String      @default("#000000")
   createdAt DateTime    @default(now())
   updatedAt DateTime    @updatedAt
-  UserBoard UserBoard[]
+  userBoard UserBoard[]
+  tasks     Task[]
 }
 
 model UserBoard {
@@ -55,4 +63,77 @@ model UserBoard {
   user      User     @relation(fields: [userId], references: [id])
   board     Board    @relation(fields: [boardId], references: [id])
   createdAt DateTime @default(now())
+}
+
+// ? Tareas
+
+enum TaskStatus {
+  PENDING
+  ATTENTION
+  IN_PROGRESS
+  FOR_REVIEW
+  DONE
+}
+
+enum TaskPriority {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
+}
+
+enum TaskType {
+  PRINT
+  DIGITAL
+  ECOMMERCE
+  SPECIAL
+}
+
+model Task {
+  id           String       @id @default(uuid())
+  title        String
+  description  String
+  status       TaskStatus   @default(PENDING)
+  priority     TaskPriority @default(NORMAL)
+  type         TaskType     @default(DIGITAL)
+  // * Relaciones con usuarios
+  authorId     String
+  author       User         @relation("AuthorTasks", fields: [authorId], references: [id])
+  assignedToId String
+  assignedTo   User         @relation("AssignedTasks", fields: [assignedToId], references: [id])
+  // * Relacion con tablero
+  boardId      String
+  board        Board        @relation(fields: [boardId], references: [id])
+
+  dueDate   DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // * Relación con los tipos de tarea
+  printTask     PrintTask[]
+  digitalTask   DigitalTask[]
+  ecommerceTask EcommerceTask[]
+  specialTask   SpecialTask[]
+}
+
+model PrintTask {
+  id   String @id
+  task Task   @relation(fields: [id], references: [id])
+}
+
+model DigitalTask {
+  id   String @id
+  task Task   @relation(fields: [id], references: [id])
+}
+
+model EcommerceTask {
+  id   String @id
+  task Task   @relation(fields: [id], references: [id])
+}
+
+model SpecialTask {
+  id     String @id
+  task   Task   @relation(fields: [id], references: [id])
+  size   String
+  legals String
 }
