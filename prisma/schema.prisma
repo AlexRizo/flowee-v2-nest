@@ -40,6 +40,7 @@ model User {
   userBoard     UserBoard[]
   authorTasks   Task[]      @relation("AuthorTasks")
   assignedTasks Task[]      @relation("AssignedTasks")
+  deleted       Boolean     @default(false)
 }
 
 // ? Tableros

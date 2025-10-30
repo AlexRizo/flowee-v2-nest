@@ -138,6 +138,8 @@ export class BoardsService {
 
     try {
       await this.prisma.board.delete({ where: { id } });
+
+      return { message: 'Tablero eliminado correctamente' };
     } catch (error) {
       this.handleDBErrors(error);
     }

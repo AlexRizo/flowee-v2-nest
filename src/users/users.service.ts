@@ -36,7 +36,7 @@ export class UsersService {
   async findAll() {
     const users = await this.prisma.user.findMany({
       omit: { password: true, refreshToken: true },
-      where: { isActive: true },
+      where: { deleted: false },
     });
 
     if (!users || !users.length) {
@@ -54,7 +54,7 @@ export class UsersService {
         : { username: term };
 
     const user = await this.prisma.user.findUnique({
-      where: { ...where, isActive: true },
+      where: { ...where, deleted: false },
       omit: { password: true, refreshToken: true },
     });
 
@@ -70,7 +70,7 @@ export class UsersService {
   async findOneForAuth(term: string) {
     const where = isUUID(term) ? { id: term } : { email: term };
     const user = await this.prisma.user.findUnique({
-      where: { ...where, isActive: true },
+      where: { ...where, deleted: false },
     });
 
     return user;
@@ -83,6 +83,21 @@ export class UsersService {
       where: { id: userId },
       data: { refreshToken },
     });
+  }
+
+  async remove(id: string) {
+    await this.findOne(id);
+
+    try {
+      await this.prisma.user.update({
+        where: { id },
+        data: { deleted: true },
+      });
+
+      return { message: 'Usuario eliminado correctamente' };
+    } catch (error) {
+      this.handleDBErrors(error);
+    }
   }
 
   private handleDBErrors(error: any) {
