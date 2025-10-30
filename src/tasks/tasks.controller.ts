@@ -14,28 +14,28 @@ import { CreateSpecialTaskDto } from './dto/special-task.dto';
 export class TasksController {
   constructor(private readonly tasksService: TasksService) {}
 
-  @Post('special')
-  create(@Body() specialTaskDto: CreateSpecialTaskDto) {
-    return this.tasksService.create(specialTaskDto);
-  }
+  // @Post('special')
+  // create(@Body() specialTaskDto: CreateSpecialTaskDto) {
+  //   return this.tasksService.create(specialTaskDto);
+  // }
 
-  @Get()
-  findAll() {
-    return this.tasksService.findAll();
-  }
+  // @Get()
+  // findAll() {
+  //   return this.tasksService.findAll();
+  // }
 
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.tasksService.findOne(+id);
-  }
+  // @Get(':id')
+  // findOne(@Param('id') id: string) {
+  //   return this.tasksService.findOne(+id);
+  // }
 
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() updateTaskDto: any) {
-    return this.tasksService.update(+id, updateTaskDto);
-  }
+  // @Patch(':id')
+  // update(@Param('id') id: string, @Body() updateTaskDto: any) {
+  //   return this.tasksService.update(+id, updateTaskDto);
+  // }
 
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.tasksService.remove(+id);
-  }
+  // @Delete(':id')
+  // remove(@Param('id') id: string) {
+  //   return this.tasksService.remove(+id);
+  // }
 }

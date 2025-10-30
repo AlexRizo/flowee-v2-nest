@@ -16,9 +16,9 @@ export class CreateUserDto {
   @IsString()
   @IsNotEmpty()
   @MinLength(3)
-  @Matches(/^[a-zA-Z0-9_-]+$/, {
+  @Matches(/^[a-z0-9_-]+$/, {
     message:
-      'El nombre de usuario solo puede contener letras, números y guiones',
+      'El nombre de usuario solo puede contener letras minúsculas, números y guiones',
   })
   username: string;
 

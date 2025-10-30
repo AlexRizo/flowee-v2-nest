@@ -5,6 +5,7 @@ import {
   Body,
   Param,
   ParseUUIDPipe,
+  Delete,
 } from '@nestjs/common';
 import { BoardsService } from './boards.service';
 import { CreateBoardDto } from './dto/create-board.dto';
@@ -55,5 +56,11 @@ export class BoardsController {
   @Get(':term')
   findOne(@Param('term') term: string) {
     return this.boardsService.findOne(term);
+  }
+
+  @Auth(Role.ADMIN, Role.SUPER_ADMIN)
+  @Delete(':id')
+  remove(@Param('id', ParseUUIDPipe) id: string) {
+    return this.boardsService.remove(id);
   }
 }

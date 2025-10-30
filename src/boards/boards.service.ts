@@ -133,6 +133,16 @@ export class BoardsService {
     return board;
   }
 
+  async remove(id: string) {
+    await this.findOne(id);
+
+    try {
+      await this.prisma.board.delete({ where: { id } });
+    } catch (error) {
+      this.handleDBErrors(error);
+    }
+  }
+
   private handleDBErrors(error: any) {
     if (
       error instanceof Prisma.PrismaClientKnownRequestError &&
