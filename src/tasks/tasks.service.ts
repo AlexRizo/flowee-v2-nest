@@ -1,13 +1,15 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { Role, Task, User } from '@prisma/client';
+import { Role, Task } from '@prisma/client';
 import { BoardsService } from 'src/boards/boards.service';
 import { PrismaService } from 'src/prisma/prisma.service';
+import { UsersService } from 'src/users/users.service';
 
 @Injectable()
 export class TasksService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly boardsService: BoardsService,
+    private readonly usersService: UsersService,
   ) {}
 
   private roles = Role;
@@ -22,11 +24,9 @@ export class TasksService {
     return tasks;
   }
 
-  async findTasksByBoard(
-    boardId: string,
-    { role: userRole, id: userId }: User,
-  ) {
+  async findTasksByBoard(boardId: string, userId: string) {
     await this.boardsService.findOne(boardId);
+    const { role: userRole } = await this.usersService.findOne(userId);
 
     let tasks: Task[];
 
