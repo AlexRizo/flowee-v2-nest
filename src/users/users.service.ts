@@ -85,6 +85,22 @@ export class UsersService {
     });
   }
 
+  async update(id: string, updateUserDto: Partial<CreateUserDto>) {
+    await this.findOne(id);
+
+    try {
+      const user = await this.prisma.user.update({
+        where: { id },
+        data: { ...updateUserDto },
+        omit: { password: true, refreshToken: true },
+      });
+
+      return user;
+    } catch (error) {
+      this.handleDBErrors(error);
+    }
+  }
+
   async remove(id: string) {
     await this.findOne(id);
 
