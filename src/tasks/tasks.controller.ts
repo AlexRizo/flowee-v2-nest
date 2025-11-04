@@ -5,6 +5,8 @@ import {
   Body,
   Param,
   ParseUUIDPipe,
+  UploadedFiles,
+  UseInterceptors,
 } from '@nestjs/common';
 import { TasksService } from './tasks.service';
 import { Auth } from 'src/auth/decorators/auth.decorator';
@@ -12,6 +14,12 @@ import { GetUser } from 'src/auth/decorators/get-user.decorator';
 import { SpecialTasksService } from './special-tasks.service';
 import { CreateSpecialTaskDto } from './dto/special-task.dto';
 import { Role } from '@prisma/client';
+import { FileFieldsInterceptor } from '@nestjs/platform-express';
+import { memoryStorage } from 'multer';
+import {
+  type FilesPayload,
+  TaskFilesPayloadPipe,
+} from './pipes/task-files-payload.pipe';
 
 @Controller('tasks')
 export class TasksController {
@@ -43,5 +51,32 @@ export class TasksController {
     @GetUser('id') userId: string,
   ) {
     return this.specialTasksService.createSpecialTask(specialTask, userId);
+  }
+
+  @Auth()
+  @Post(':id/uploads')
+  @UseInterceptors(
+    FileFieldsInterceptor(
+      [
+        { name: 'referenceFiles', maxCount: 5 },
+        { name: 'requiredFiles', maxCount: 5 },
+      ],
+      {
+        storage: memoryStorage(),
+      },
+    ),
+  )
+  uploadFiles(
+    @Param('id', ParseUUIDPipe) id: string,
+    @UploadedFiles(
+      new TaskFilesPayloadPipe({
+        requiredReference: true,
+        requiredFiles: true,
+        allowEmptyArrays: false,
+      }),
+    )
+    files: FilesPayload,
+  ) {
+    return this.tasksService.uploadFiles(id, files);
   }
 }

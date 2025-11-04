@@ -3,6 +3,7 @@ import { Role, Task } from '@prisma/client';
 import { BoardsService } from 'src/boards/boards.service';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { UsersService } from 'src/users/users.service';
+import { type FilesPayload } from './pipes/task-files-payload.pipe';
 
 @Injectable()
 export class TasksService {
@@ -13,6 +14,15 @@ export class TasksService {
   ) {}
 
   private roles = Role;
+
+  async findOne(id: string) {
+    const task = await this.prisma.task.findUnique({ where: { id } });
+    if (!task) {
+      throw new NotFoundException('No se encontró la tarea');
+    }
+
+    return task;
+  }
 
   async findAll() {
     const tasks = await this.prisma.task.findMany();
@@ -48,5 +58,11 @@ export class TasksService {
     }
 
     return tasks;
+  }
+
+  async uploadFiles(taskId: string, files: FilesPayload) {
+    await this.findOne(taskId);
+
+    
   }
 }
