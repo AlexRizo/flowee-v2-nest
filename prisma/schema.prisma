@@ -100,8 +100,8 @@ model Task {
   // * Relaciones con usuarios
   authorId     String
   author       User         @relation("AuthorTasks", fields: [authorId], references: [id])
-  assignedToId String
-  assignedTo   User         @relation("AssignedTasks", fields: [assignedToId], references: [id])
+  assignedToId String?
+  assignedTo   User?        @relation("AssignedTasks", fields: [assignedToId], references: [id])
   // * Relacion con tablero
   boardId      String
   board        Board        @relation(fields: [boardId], references: [id])
@@ -111,10 +111,10 @@ model Task {
   updatedAt DateTime @updatedAt
 
   // * Relación con los tipos de tarea
-  printTask     PrintTask[]
-  digitalTask   DigitalTask[]
-  ecommerceTask EcommerceTask[]
-  specialTask   SpecialTask[]
+  printTask     PrintTask?
+  digitalTask   DigitalTask?
+  ecommerceTask EcommerceTask?
+  specialTask   SpecialTask?
 }
 
 model PrintTask {
@@ -136,5 +136,5 @@ model SpecialTask {
   id     String @id
   task   Task   @relation(fields: [id], references: [id])
   size   String
-  legals String
+  legals String?
 }

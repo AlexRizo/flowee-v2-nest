@@ -1,5 +1,12 @@
 import { TaskPriority, TaskStatus, TaskType } from '@prisma/client';
-import { IsDate, IsEnum, IsNotEmpty, IsString, IsUUID } from 'class-validator';
+import {
+  IsDateString,
+  IsEnum,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  IsUUID,
+} from 'class-validator';
 
 export class TaskBaseDto {
   @IsString()
@@ -28,19 +35,21 @@ export class TaskBaseDto {
   @IsString()
   @IsNotEmpty()
   @IsUUID()
-  assignedTo: string;
+  @IsOptional()
+  assignedToId?: string;
 
   @IsString()
   @IsNotEmpty()
   @IsUUID()
-  author: string;
+  @IsOptional()
+  authorId?: string;
 
   @IsString()
   @IsNotEmpty()
   @IsUUID()
-  board: string;
+  boardId: string;
 
   @IsNotEmpty()
-  @IsDate()
+  @IsDateString()
   dueDate: Date;
 }

@@ -120,8 +120,6 @@ export class BoardsService {
   async findOne(term: string) {
     const where = isUUID(term) ? { id: term } : { slug: term };
 
-    console.log(where);
-
     const board = await this.prisma.board.findUnique({ where });
 
     if (!board) {

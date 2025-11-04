@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsString } from 'class-validator';
+import { IsNotEmpty, IsOptional, IsString } from 'class-validator';
 import { TaskBaseDto } from './task-base.dto';
 
 export class CreateSpecialTaskDto extends TaskBaseDto {
@@ -8,5 +8,6 @@ export class CreateSpecialTaskDto extends TaskBaseDto {
 
   @IsString()
   @IsNotEmpty()
-  legals: string;
+  @IsOptional()
+  legals?: string;
 }
