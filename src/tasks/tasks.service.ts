@@ -63,6 +63,10 @@ export class TasksService {
   async uploadFiles(taskId: string, files: FilesPayload) {
     await this.findOne(taskId);
 
-    
+    console.log(files);
+
+    return {
+      message: 'Archivos subidos correctamente',
+    };
   }
 }

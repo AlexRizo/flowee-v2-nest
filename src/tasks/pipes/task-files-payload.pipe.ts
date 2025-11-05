@@ -51,7 +51,7 @@ export class TaskFilesPayloadPipe {
       missing.push('[requiredFiles]');
     }
 
-    if (!missing.length) {
+    if (missing.length) {
       throw new BadRequestException(
         `Se esperaban archivos en los siguientes campos: ${missing.join(', ')}`,
       );
@@ -96,5 +96,7 @@ export class TaskFilesPayloadPipe {
         );
       }
     }
+
+    return payload as Required<FilesPayload>;
   }
 }
