@@ -4,6 +4,7 @@ import { BoardsService } from 'src/boards/boards.service';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { UsersService } from 'src/users/users.service';
 import { type FilesPayload } from './pipes/task-files-payload.pipe';
+import { AwsS3Service } from 'src/aws/aws-s3.service';
 
 @Injectable()
 export class TasksService {
@@ -11,6 +12,7 @@ export class TasksService {
     private readonly prisma: PrismaService,
     private readonly boardsService: BoardsService,
     private readonly usersService: UsersService,
+    private readonly awsS3Service: AwsS3Service,
   ) {}
 
   private roles = Role;
@@ -63,7 +65,17 @@ export class TasksService {
   async uploadFiles(taskId: string, files: FilesPayload) {
     await this.findOne(taskId);
 
-    console.log(files);
+    const reqRes = await this.awsS3Service.uploadFiles(
+      files.requiredFiles,
+      'tasks/required',
+    );
+
+    const refRes = await this.awsS3Service.uploadFiles(
+      files.referenceFiles,
+      'tasks/reference',
+    );
+
+    console.log([...reqRes.successfulFiles, ...refRes.successfulFiles]);
 
     return {
       message: 'Archivos subidos correctamente',
