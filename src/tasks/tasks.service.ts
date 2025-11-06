@@ -1,5 +1,11 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
-import { Role, Task } from '@prisma/client';
+import {
+  ConflictException,
+  Injectable,
+  InternalServerErrorException,
+  Logger,
+  NotFoundException,
+} from '@nestjs/common';
+import { Prisma, Role, Task, TaskFileType } from '@prisma/client';
 import { BoardsService } from 'src/boards/boards.service';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { UsersService } from 'src/users/users.service';
@@ -16,6 +22,7 @@ export class TasksService {
   ) {}
 
   private roles = Role;
+  private readonly logger = new Logger(TasksService.name);
 
   async findOne(id: string) {
     const task = await this.prisma.task.findUnique({ where: { id } });
@@ -64,6 +71,7 @@ export class TasksService {
 
   async uploadFiles(taskId: string, files: FilesPayload) {
     await this.findOne(taskId);
+    let message: string = 'Archivos subidos correctamente';
 
     const reqRes = await this.awsS3Service.uploadFiles(
       files.requiredFiles,
@@ -75,10 +83,45 @@ export class TasksService {
       'tasks/reference',
     );
 
-    console.log([...reqRes.successfulFiles, ...refRes.successfulFiles]);
+    try {
+      const taskFiles = await this.prisma.taskFiles.createMany({
+        data: [
+          ...reqRes.successfulFiles.map(obj => ({
+            ...obj,
+            taskId,
+            type: TaskFileType.REQUIRED,
+          })),
+          ...refRes.successfulFiles.map(obj => ({
+            ...obj,
+            taskId,
+            type: TaskFileType.REFERENCE,
+          })),
+        ],
+      });
 
-    return {
-      message: 'Archivos subidos correctamente',
-    };
+      if (reqRes.rejectedFiles.length || refRes.rejectedFiles.length) {
+        message = 'Ha ocurrido un error al subir algunos archivos';
+      }
+
+      return {
+        message,
+        rejectedFiles: [...reqRes.rejectedFiles, ...refRes.rejectedFiles],
+        uploadedFiles: taskFiles,
+      };
+    } catch (error) {
+      this.handleDBErrors(error);
+    }
+  }
+
+  private handleDBErrors(error: any) {
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === 'P2002'
+    ) {
+      throw new ConflictException(`El fileKey ya está registrado`);
+    }
+
+    this.logger.error('Ha ocurrido un error inesperado', JSON.stringify(error));
+    throw new InternalServerErrorException('Ha ocurrido un error inesperado');
   }
 }

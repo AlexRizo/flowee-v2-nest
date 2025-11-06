@@ -115,6 +115,7 @@ model Task {
   digitalTask   DigitalTask?
   ecommerceTask EcommerceTask?
   specialTask   SpecialTask?
+  taskFiles     TaskFiles[]
 }
 
 model PrintTask {
@@ -133,8 +134,27 @@ model EcommerceTask {
 }
 
 model SpecialTask {
-  id     String @id
-  task   Task   @relation(fields: [id], references: [id])
+  id     String  @id
+  task   Task    @relation(fields: [id], references: [id])
   size   String
   legals String?
+}
+
+// ? Archivos de las tareas
+
+enum TaskFileType {
+  REQUIRED
+  REFERENCE
+}
+
+model TaskFiles {
+  id        String       @id @default(uuid())
+  key       String       @unique
+  url       String
+  fileName  String
+  createdAt DateTime     @default(now())
+  type      TaskFileType
+
+  taskId String
+  task   Task   @relation(fields: [taskId], references: [id], onDelete: Cascade)
 }

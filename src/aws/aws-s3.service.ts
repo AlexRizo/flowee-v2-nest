@@ -51,7 +51,6 @@ export class AwsS3Service {
         key: fileKey,
         url: fileUrl,
         fileName: sanitizedFileName,
-        message: 'Archivo subido correctamente',
       };
     } catch (error) {
       console.log(error);
