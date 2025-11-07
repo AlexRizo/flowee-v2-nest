@@ -1,4 +1,8 @@
-import { Injectable, InternalServerErrorException } from '@nestjs/common';
+import {
+  Injectable,
+  InternalServerErrorException,
+  Logger,
+} from '@nestjs/common';
 import { PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
 import { ConfigService } from '@nestjs/config';
 import { Env } from 'src/config/env.validation';
@@ -13,12 +17,17 @@ export class AwsS3Service {
   private readonly s3Client: S3Client;
   private readonly bucketName: string;
   private readonly bucketRegion: string;
-  private readonly secure_url: string;
+  private readonly cdnUrl: string;
+
+  private readonly logger = new Logger(AwsS3Service.name);
+
+  private readonly publicPrefix = 'public';
+  private readonly privatePrefix = 'private';
 
   constructor(private readonly configService: ConfigService<Env, true>) {
     this.bucketName = this.configService.get('AWS_BUCKET');
     this.bucketRegion = this.configService.get('AWS_REGION');
-    this.secure_url = this.configService.get('AWS_DIST_DOMAIN');
+    this.cdnUrl = this.configService.get('AWS_CF_CDN');
 
     this.s3Client = new S3Client({
       region: this.bucketRegion,
@@ -29,42 +38,64 @@ export class AwsS3Service {
     });
   }
 
-  async uploadFile(file: Express.Multer.File, folder: string) {
+  public async uploadPublicFile(file: Express.Multer.File, folder: string) {
     const sanitizedFileName = sanitizeFileName(file.originalname);
-    const fileKey = `${folder}/${sanitizedFileName}`;
 
+    const fileKey = `${this.publicPrefix}/${folder}/${sanitizedFileName}`;
+
+    await this.uploadFile(file, fileKey, false);
+
+    const fileUrl = `${this.cdnUrl}/${fileKey}`;
+
+    return {
+      key: fileKey,
+      url: fileUrl,
+      fileName: sanitizedFileName,
+    };
+  }
+
+  public async uploadPrivateFile(file: Express.Multer.File, folder: string) {
+    const sanitizedFileName = sanitizeFileName(file.originalname);
+
+    const fileKey = `${this.privatePrefix}/${folder}/${sanitizedFileName}`;
+
+    await this.uploadFile(file, fileKey, true);
+
+    return {
+      key: fileKey,
+      fileName: sanitizedFileName,
+    };
+  }
+
+  private async uploadFile(
+    file: Express.Multer.File,
+    key: string,
+    isPrivate = true,
+  ) {
     try {
       await this.s3Client.send(
         new PutObjectCommand({
           Bucket: this.bucketName,
-          Key: fileKey,
+          Key: key,
           Body: file.buffer,
           ContentType: file.mimetype,
-          CacheControl: 'max-age=31536000, public',
+          CacheControl: isPrivate ? 'no-cache' : 'max-age=31536000, public',
           ContentDisposition: 'inline',
         }),
       );
-
-      const fileUrl = `https://${this.bucketName}.s3.${this.bucketRegion}.amazonaws.com/${fileKey}`;
-
-      return {
-        key: fileKey,
-        url: fileUrl,
-        fileName: sanitizedFileName,
-      };
     } catch (error) {
       console.log(error);
       throw new InternalServerErrorException('Error uploading file to S3');
     }
   }
 
-  async uploadFiles(files: Express.Multer.File[], folder: string) {
+  async uploadPublicFiles(files: Express.Multer.File[], folder: string) {
     let message: string = 'Archivos subidos correctamente';
     const rejectedFiles: S3UploadRejected[] = [];
     const successfulFiles: S3UploadSuccessful[] = [];
 
     const uploads = files.map(
-      async file => await this.uploadFile(file, folder),
+      async file => await this.uploadPublicFile(file, folder),
     );
 
     const settled = await Promise.allSettled(uploads);

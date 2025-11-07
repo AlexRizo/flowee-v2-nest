@@ -30,7 +30,7 @@ const envSchema = z.object({
   AWS_SECRET_KEY: z.string(),
   AWS_REGION: z.string(),
   AWS_BUCKET: z.string(),
-  AWS_DIST_DOMAIN: z.url(),
+  AWS_CF_CDN: z.url(),
 });
 
 export type Env = z.infer<typeof envSchema>;
