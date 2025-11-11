@@ -8,3 +8,8 @@ export interface S3UploadSuccessful {
   url: string;
   fileName: string;
 }
+
+export interface S3PrivateUploadSuccessful {
+  key: string;
+  fileName: string;
+}

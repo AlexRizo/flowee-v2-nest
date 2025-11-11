@@ -8,6 +8,7 @@ import { ConfigService } from '@nestjs/config';
 import { Env } from 'src/config/env.validation';
 import { sanitizeFileName } from './helpers/files';
 import {
+  S3PrivateUploadSuccessful,
   S3UploadRejected,
   S3UploadSuccessful,
 } from './interfaces/s3.interfaces';
@@ -38,35 +39,6 @@ export class AwsS3Service {
     });
   }
 
-  public async uploadPublicFile(file: Express.Multer.File, folder: string) {
-    const sanitizedFileName = sanitizeFileName(file.originalname);
-
-    const fileKey = `${this.publicPrefix}/${folder}/${sanitizedFileName}`;
-
-    await this.uploadFile(file, fileKey, false);
-
-    const fileUrl = `${this.cdnUrl}/${fileKey}`;
-
-    return {
-      key: fileKey,
-      url: fileUrl,
-      fileName: sanitizedFileName,
-    };
-  }
-
-  public async uploadPrivateFile(file: Express.Multer.File, folder: string) {
-    const sanitizedFileName = sanitizeFileName(file.originalname);
-
-    const fileKey = `${this.privatePrefix}/${folder}/${sanitizedFileName}`;
-
-    await this.uploadFile(file, fileKey, true);
-
-    return {
-      key: fileKey,
-      fileName: sanitizedFileName,
-    };
-  }
-
   private async uploadFile(
     file: Express.Multer.File,
     key: string,
@@ -89,6 +61,35 @@ export class AwsS3Service {
     }
   }
 
+  async uploadPublicFile(file: Express.Multer.File, folder: string) {
+    const sanitizedFileName = sanitizeFileName(file.originalname);
+
+    const fileKey = `${this.publicPrefix}/${folder}/${sanitizedFileName}`;
+
+    await this.uploadFile(file, fileKey, false);
+
+    const fileUrl = `${this.cdnUrl}/${fileKey}`;
+
+    return {
+      key: fileKey,
+      url: fileUrl,
+      fileName: sanitizedFileName,
+    };
+  }
+
+  async uploadPrivateFile(file: Express.Multer.File, folder: string) {
+    const sanitizedFileName = sanitizeFileName(file.originalname);
+
+    const fileKey = `${this.privatePrefix}/${folder}/${sanitizedFileName}`;
+
+    await this.uploadFile(file, fileKey, true);
+
+    return {
+      key: fileKey,
+      fileName: sanitizedFileName,
+    };
+  }
+
   async uploadPublicFiles(files: Express.Multer.File[], folder: string) {
     let message: string = 'Archivos subidos correctamente';
     const rejectedFiles: S3UploadRejected[] = [];
@@ -96,6 +97,42 @@ export class AwsS3Service {
 
     const uploads = files.map(
       async file => await this.uploadPublicFile(file, folder),
+    );
+
+    const settled = await Promise.allSettled(uploads);
+
+    settled.forEach((result, i) => {
+      if (result.status === 'rejected') {
+        const reason = result.reason as Error | { message?: string };
+
+        message = 'Ha ocurrido un error al subir algunos archivos';
+
+        rejectedFiles.push({
+          filename: files[i].originalname || 'Archivo desconocido',
+          reason:
+            reason instanceof Error
+              ? reason.message
+              : reason.message || 'Error desconocido',
+        });
+      } else {
+        successfulFiles.push(result.value);
+      }
+    });
+
+    return {
+      message,
+      rejectedFiles,
+      successfulFiles,
+    };
+  }
+
+  async uploadPrivateFiles(files: Express.Multer.File[], folder: string) {
+    let message: string = 'Archivos subidos correctamente';
+    const rejectedFiles: S3UploadRejected[] = [];
+    const successfulFiles: S3PrivateUploadSuccessful[] = [];
+
+    const uploads = files.map(
+      async file => await this.uploadPrivateFile(file, folder),
     );
 
     const settled = await Promise.allSettled(uploads);

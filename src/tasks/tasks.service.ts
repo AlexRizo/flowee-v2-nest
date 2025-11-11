@@ -73,12 +73,12 @@ export class TasksService {
     await this.findOne(taskId);
     let message: string = 'Archivos subidos correctamente';
 
-    const reqRes = await this.awsS3Service.uploadFiles(
+    const reqRes = await this.awsS3Service.uploadPrivateFiles(
       files.requiredFiles,
       'tasks/required',
     );
 
-    const refRes = await this.awsS3Service.uploadFiles(
+    const refRes = await this.awsS3Service.uploadPrivateFiles(
       files.referenceFiles,
       'tasks/reference',
     );

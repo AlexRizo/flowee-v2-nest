@@ -120,22 +120,22 @@ model Task {
 
 model PrintTask {
   id   String @id
-  task Task   @relation(fields: [id], references: [id])
+  task Task   @relation(fields: [id], references: [id], onDelete: Cascade)
 }
 
 model DigitalTask {
   id   String @id
-  task Task   @relation(fields: [id], references: [id])
+  task Task   @relation(fields: [id], references: [id], onDelete: Cascade)
 }
 
 model EcommerceTask {
   id   String @id
-  task Task   @relation(fields: [id], references: [id])
+  task Task   @relation(fields: [id], references: [id], onDelete: Cascade)
 }
 
 model SpecialTask {
   id     String  @id
-  task   Task    @relation(fields: [id], references: [id])
+  task   Task    @relation(fields: [id], references: [id], onDelete: Cascade)
   size   String
   legals String?
 }
@@ -150,7 +150,6 @@ enum TaskFileType {
 model TaskFiles {
   id        String       @id @default(uuid())
   key       String       @unique
-  url       String
   fileName  String
   createdAt DateTime     @default(now())
   type      TaskFileType
