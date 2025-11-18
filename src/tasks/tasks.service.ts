@@ -49,6 +49,12 @@ export class TasksService {
 
     let tasks: Task[];
 
+    const include = {
+      board: true,
+      author: true,
+      assignedTo: true,
+    };
+
     if (
       userRole === this.roles.ADMIN ||
       userRole === this.roles.SUPER_ADMIN ||
@@ -56,13 +62,14 @@ export class TasksService {
       userRole === this.roles.DESIGNER_ADMIN ||
       userRole === this.roles.PUBLISHER_ADMIN
     ) {
-      tasks = await this.prisma.task.findMany({ where: { boardId } });
+      tasks = await this.prisma.task.findMany({ where: { boardId }, include });
     } else {
       tasks = await this.prisma.task.findMany({
         where: {
           boardId,
           OR: [{ authorId: userId }, { assignedToId: userId }],
         },
+        include,
       });
     }
 
