@@ -7,6 +7,7 @@ import { BoardsModule } from './boards/boards.module';
 import { TasksModule } from './tasks/tasks.module';
 import { AwsModule } from './aws/aws.module';
 import { validateEnv } from './config/env.validation';
+import { TaskWsModule } from './task-ws/task-ws.module';
 
 @Module({
   imports: [
@@ -21,6 +22,7 @@ import { validateEnv } from './config/env.validation';
     BoardsModule,
     TasksModule,
     AwsModule,
+    TaskWsModule,
   ],
   controllers: [],
   providers: [],
