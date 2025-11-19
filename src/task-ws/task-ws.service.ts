@@ -1,26 +1,35 @@
 import { Injectable } from '@nestjs/common';
-import { CreateTaskWDto } from './dto/create-task-w.dto';
-import { UpdateTaskWDto } from './dto/update-task-w.dto';
+import { User } from '@prisma/client';
+import { Socket } from 'socket.io';
+import { UsersService } from 'src/users/users.service';
+
+interface ConnectedClients {
+  [clientId: string]: {
+    socket: Socket;
+    user: Partial<User>;
+  };
+}
 
 @Injectable()
 export class TaskWsService {
-  create(createTaskWDto: CreateTaskWDto) {
-    return 'This action adds a new taskW';
+  private connectedClients: ConnectedClients = {};
+
+  constructor(private readonly usersService: UsersService) {}
+
+  getConnectedClients() {
+    return this.connectedClients;
   }
 
-  findAll() {
-    return `This action returns all taskWs`;
+  async registerClient(client: Socket, userId: string) {
+    const user = await this.usersService.findOne(userId);
+
+    this.connectedClients[client.id] = {
+      socket: client,
+      user,
+    };
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} taskW`;
-  }
-
-  update(id: number, updateTaskWDto: UpdateTaskWDto) {
-    return `This action updates a #${id} taskW`;
-  }
-
-  remove(id: number) {
-    return `This action removes a #${id} taskW`;
+  removeClient(clientId: string) {
+    delete this.connectedClients[clientId];
   }
 }

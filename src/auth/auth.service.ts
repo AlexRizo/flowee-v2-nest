@@ -42,9 +42,10 @@ export class AuthService {
     email: string,
     username: string,
     role: Role,
+    xsrf: string,
   ) {
-    const accessPayload = { id: userId, email, username, role };
-    const refreshPayload = { id: userId, email, username, role };
+    const accessPayload = { id: userId, email, username, role, xsrf };
+    const refreshPayload = { id: userId, email, username, role, xsrf };
 
     const accessToken = await this.jwtService.signAsync(accessPayload, {
       secret: this.configService.get('JWT_ACCESS_SECRET'),
@@ -65,11 +66,14 @@ export class AuthService {
       throw new UnauthorizedException('Correo y/o contraseña incorrectos');
     }
 
+    const xsrfToken = generateCSRFToken();
+
     const { accessToken, refreshToken } = await this.signTokens(
       user.id,
       user.email,
       user.username,
       user.role,
+      xsrfToken,
     );
 
     const refreshHash = await bcrypt.hash(refreshToken, 12);
@@ -83,7 +87,7 @@ export class AuthService {
 
     res.cookie('refresh_token', refreshToken, cookieOptions(refreshExpMinutes));
 
-    res.cookie('XSRF-TOKEN', generateCSRFToken(), {
+    res.cookie('XSRF-TOKEN', xsrfToken, {
       httpOnly: false,
       secure: this.configService.get('NODE_ENV') === 'production',
       maxAge: 15 * 60 * 1000, // 15 minutos;
@@ -133,11 +137,14 @@ export class AuthService {
     const isMatch = await bcrypt.compare(rt, user.refreshToken);
     if (!isMatch) throw new UnauthorizedException('Acceso denegado - isMatch');
 
+    const xsrfToken = generateCSRFToken();
+
     const { accessToken, refreshToken } = await this.signTokens(
       user.id,
       user.email,
       user.username,
       user.role,
+      xsrfToken,
     );
 
     const newRefreshHash = await bcrypt.hash(refreshToken, 12);
@@ -150,7 +157,7 @@ export class AuthService {
     );
 
     res.cookie('refresh_token', refreshToken, cookieOptions(refreshExpMinutes));
-    res.cookie('XSRF-TOKEN', generateCSRFToken(), {
+    res.cookie('XSRF-TOKEN', xsrfToken, {
       httpOnly: false,
       secure: this.configService.get('NODE_ENV') === 'production',
       maxAge: 15 * 60 * 1000, // 15 minutos;

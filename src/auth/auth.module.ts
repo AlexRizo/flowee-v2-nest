@@ -19,5 +19,6 @@ import { CsrfGuard } from './utils/csrf.util';
     JwtRefreshStrategy,
     CsrfGuard,
   ],
+  exports: [JwtModule],
 })
 export class AuthModule {}

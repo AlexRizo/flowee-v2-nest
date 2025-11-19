@@ -1,56 +1,50 @@
 import {
   WebSocketGateway,
-  SubscribeMessage,
-  MessageBody,
   OnGatewayConnection,
   OnGatewayDisconnect,
   WebSocketServer,
 } from '@nestjs/websockets';
 import { TaskWsService } from './task-ws.service';
-import { CreateTaskWDto } from './dto/create-task-w.dto';
-import { UpdateTaskWDto } from './dto/update-task-w.dto';
 import { Server, Socket } from 'socket.io';
-import { getRefreshToken } from 'src/aws/helpers/cookies';
+import { validateWsHandshake } from 'src/auth/utils/validateWsHandshake';
+import { JwtService } from '@nestjs/jwt';
+import { Env } from 'src/config/env.validation';
+import { ConfigService } from '@nestjs/config';
 
 @WebSocketGateway()
 export class TaskWsGateway implements OnGatewayConnection, OnGatewayDisconnect {
-  constructor(private readonly taskWsService: TaskWsService) {}
+  constructor(
+    private readonly taskWsService: TaskWsService,
+    private readonly jwtService: JwtService,
+    private readonly configService: ConfigService<Env, true>,
+  ) {}
 
   @WebSocketServer()
   server: Server;
 
-  handleConnection(client: Socket) {
-    console.log(client.handshake.headers);
-    const token = getRefreshToken(client.handshake.headers.cookie || '');
-    console.log(`Client connected: ${client.id}; Refresh Token: ${token}`);
+  async handleConnection(client: Socket) {
+    const payload = validateWsHandshake(
+      client,
+      this.jwtService,
+      this.configService,
+    );
+
+    if (!payload) {
+      client.disconnect();
+      return;
+    }
+
+    await this.taskWsService.registerClient(client, payload.id);
+
+    const clients = this.taskWsService.getConnectedClients();
+
+    console.log(
+      'Clients connected:',
+      Array.from(Object.values(clients)).map(c => c.user.email),
+    );
   }
 
   handleDisconnect(client: Socket) {
-    console.log(`Client disconnected: ${client.id}`);
-  }
-
-  @SubscribeMessage('createTaskW')
-  create(@MessageBody() createTaskWDto: CreateTaskWDto) {
-    return this.taskWsService.create(createTaskWDto);
-  }
-
-  @SubscribeMessage('findAllTaskWs')
-  findAll() {
-    return this.taskWsService.findAll();
-  }
-
-  @SubscribeMessage('findOneTaskW')
-  findOne(@MessageBody() id: number) {
-    return this.taskWsService.findOne(id);
-  }
-
-  @SubscribeMessage('updateTaskW')
-  update(@MessageBody() updateTaskWDto: UpdateTaskWDto) {
-    return this.taskWsService.update(updateTaskWDto.id, updateTaskWDto);
-  }
-
-  @SubscribeMessage('removeTaskW')
-  remove(@MessageBody() id: number) {
-    return this.taskWsService.remove(id);
+    this.taskWsService.removeClient(client.id);
   }
 }

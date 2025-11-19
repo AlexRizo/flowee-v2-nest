@@ -6,6 +6,7 @@ export interface UserPayload {
   email: string;
   role: Role;
   refreshToken: string;
+  xsrf: string;
   iat?: number;
   exp?: number;
 }
