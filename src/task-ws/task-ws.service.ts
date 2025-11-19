@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { User } from '@prisma/client';
 import { Socket } from 'socket.io';
 import { UsersService } from 'src/users/users.service';
+import { UpdateBoardStatusDto } from './dto/update-board-status.dto';
 
 interface ConnectedClients {
   [clientId: string]: {
@@ -31,5 +32,12 @@ export class TaskWsService {
 
   removeClient(clientId: string) {
     delete this.connectedClients[clientId];
+  }
+
+  joinUserToBoard(
+    client: Socket,
+    { boardId, newStatus }: UpdateBoardStatusDto,
+  ) {
+    this.connectedClients[clientId].socket.join(boardId);
   }
 }
