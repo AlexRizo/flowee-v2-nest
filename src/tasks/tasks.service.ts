@@ -11,6 +11,7 @@ import { PrismaService } from 'src/prisma/prisma.service';
 import { UsersService } from 'src/users/users.service';
 import { type FilesPayload } from './pipes/task-files-payload.pipe';
 import { AwsS3Service } from 'src/aws/aws-s3.service';
+import { UpdateTaskStatusDto } from './dto/udpate-task-status.dto';
 
 @Injectable()
 export class TasksService {
@@ -26,6 +27,7 @@ export class TasksService {
 
   async findOne(id: string) {
     const task = await this.prisma.task.findUnique({ where: { id } });
+
     if (!task) {
       throw new NotFoundException('No se encontró la tarea');
     }
@@ -120,7 +122,22 @@ export class TasksService {
     }
   }
 
-  private handleDBErrors(error: any) {
+  async updateTaskStatus({ taskId, toStatus }: UpdateTaskStatusDto) {
+    await this.findOne(taskId);
+
+    try {
+      const updatedTask = await this.prisma.task.update({
+        where: { id: taskId },
+        data: { status: toStatus },
+      });
+
+      return updatedTask;
+    } catch (error) {
+      this.handleDBErrors(error);
+    }
+  }
+
+  private handleDBErrors(error: any): never {
     if (
       error instanceof Prisma.PrismaClientKnownRequestError &&
       error.code === 'P2002'

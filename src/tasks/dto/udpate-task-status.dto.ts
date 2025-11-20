@@ -1,12 +1,12 @@
 import { TaskStatus } from '@prisma/client';
 import { IsEnum, IsNotEmpty, IsUUID } from 'class-validator';
 
-export class UpdateBoardStatusDto {
+export class UpdateTaskStatusDto {
   @IsUUID()
   @IsNotEmpty()
-  boardId: string;
+  taskId: string;
 
   @IsNotEmpty()
   @IsEnum(TaskStatus)
-  newStatus: TaskStatus;
+  toStatus: TaskStatus;
 }

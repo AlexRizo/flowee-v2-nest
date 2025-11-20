@@ -11,7 +11,8 @@ import { validateWsHandshake } from 'src/auth/utils/validateWsHandshake';
 import { JwtService } from '@nestjs/jwt';
 import { Env } from 'src/config/env.validation';
 import { ConfigService } from '@nestjs/config';
-import { UpdateBoardStatusDto } from './dto/update-board-status.dto';
+import { JoinUserBoardDto } from './dto/join-user-board.dto';
+import { UpdateTaskWsStatusDto } from './dto/update-task-ws-status.dto';
 
 @WebSocketGateway()
 export class TaskWsGateway implements OnGatewayConnection, OnGatewayDisconnect {
@@ -33,22 +34,24 @@ export class TaskWsGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
     if (!payload) {
       client.disconnect();
+      this.taskWsService.sendExceptionMessage(client, 'No estás autorizado');
       return;
     }
 
     await this.taskWsService.registerClient(client, payload.id);
-
-    console.log(client.id + '-c');
   }
 
   handleDisconnect(client: Socket) {
     this.taskWsService.removeClient(client.id);
-
-    console.log(client.id + '-d');
   }
 
   @SubscribeMessage('join-board')
-  joinBoard(client: Socket, payload: UpdateBoardStatusDto) {
-    this.taskWsService.joinUserToBoard(client, payload);
+  async joinBoard(client: Socket, { boardId }: JoinUserBoardDto) {
+    await this.taskWsService.joinUserToBoard(client, boardId);
+  }
+
+  @SubscribeMessage('move-task-status')
+  async updateTaskStatus(client: Socket, payload: UpdateTaskWsStatusDto) {
+    await this.taskWsService.updateTaskStatus(client, payload, this.server);
   }
 }

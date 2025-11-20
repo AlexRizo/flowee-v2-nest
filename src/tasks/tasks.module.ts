@@ -11,5 +11,6 @@ import { AwsModule } from 'src/aws/aws.module';
   controllers: [TasksController],
   imports: [PrismaModule, BoardsModule, UsersModule, AwsModule],
   providers: [TasksService, SpecialTasksService],
+  exports: [TasksService],
 })
 export class TasksModule {}

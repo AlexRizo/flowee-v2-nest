@@ -143,6 +143,25 @@ export class BoardsService {
     }
   }
 
+  async userIsInBoard(boardId: string, userId: string) {
+    const { role: userRole } = await this.usersService.findOne(userId);
+
+    if (
+      userRole &&
+      (userRole === this.roles.ADMIN ||
+        userRole === this.roles.SUPER_ADMIN ||
+        userRole === this.roles.READER)
+    ) {
+      return true;
+    }
+
+    const assignment = await this.prisma.userBoard.findFirst({
+      where: { boardId, userId },
+    });
+
+    return !!assignment;
+  }
+
   private handleDBErrors(error: any) {
     if (
       error instanceof Prisma.PrismaClientKnownRequestError &&
