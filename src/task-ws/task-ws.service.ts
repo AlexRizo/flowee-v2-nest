@@ -1,8 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { Server, Socket } from 'socket.io';
+import { Server } from 'socket.io';
 import { UsersService } from 'src/users/users.service';
 import { BoardsService } from 'src/boards/boards.service';
-import { ConnectedClients } from './interfaces/task-ws.interface';
+import { AuthSocket, ConnectedClients } from './interfaces/task-ws.interface';
 import { UpdateTaskWsStatusDto } from './dto/update-task-ws-status.dto';
 import { TasksService } from 'src/tasks/tasks.service';
 import { WsException } from '@nestjs/websockets';
@@ -24,23 +24,31 @@ export class TaskWsService {
     return this.connectedClients;
   }
 
-  async registerClient(client: Socket, userId: string) {
+  async registerClient(client: AuthSocket, userId: string) {
     const user = await this.usersService.findOne(userId);
 
-    this.connectedClients[client.id] = {
+    client.userId = user.id;
+
+    const isLoggedIn = this.connectedClients[user.id];
+
+    if (isLoggedIn) {
+      this.logoutWs(isLoggedIn.socket);
+    }
+
+    this.connectedClients[user.id] = {
       socket: client,
       user,
     };
   }
 
-  removeClient(clientId: string) {
-    delete this.connectedClients[clientId];
+  removeClient(userId: string) {
+    delete this.connectedClients[userId];
   }
 
-  async joinUserToBoard(client: Socket, boardId: string) {
+  async joinUserToBoard(client: AuthSocket, boardId: string) {
     const userIsInBoard = await this.boardsService.userIsInBoard(
       boardId,
-      this.connectedClients[client.id].user.id,
+      client.userId,
     );
 
     if (userIsInBoard) {
@@ -54,7 +62,7 @@ export class TaskWsService {
   }
 
   async updateTaskStatus(
-    client: Socket,
+    client: AuthSocket,
     { taskId, toStatus, fromStatus }: UpdateTaskWsStatusDto,
     server: Server,
   ) {
@@ -64,9 +72,12 @@ export class TaskWsService {
         toStatus,
       });
 
-      server
-        .to(this.boardRoom + task.boardId)
-        .emit('task-updated', { taskId, toStatus, fromStatus });
+      server.to(this.boardRoom + task.boardId).emit('task-status-updated', {
+        taskId,
+        toStatus,
+        fromStatus,
+        clientId: client.id,
+      });
     } catch (error) {
       this.sendExceptionMessage(
         client,
@@ -77,7 +88,14 @@ export class TaskWsService {
     }
   }
 
-  sendExceptionMessage(client: Socket, message: string) {
+  sendExceptionMessage(client: AuthSocket, message: string) {
     client.emit('exception-message', { message });
+  }
+
+  private logoutWs(client: AuthSocket) {
+    client.emit('ws-logout', {
+      message: 'Sesión cerrada desde otro dispositivo',
+    });
+    client.disconnect(true);
   }
 }
