@@ -131,6 +131,23 @@ export class BoardsService {
     return board;
   }
 
+  async findUserBoards(userTerm: string) {
+    const { id: userId } = await this.usersService.findOne(userTerm);
+
+    const userBoards = await this.prisma.userBoard.findMany({
+      where: { userId },
+      include: { board: true },
+    });
+
+    if (!userBoards || !userBoards.length) {
+      return [];
+    }
+
+    const boards = userBoards.map(userBoard => userBoard.board);
+
+    return boards;
+  }
+
   async remove(id: string) {
     await this.findOne(id);
 

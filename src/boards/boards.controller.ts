@@ -58,6 +58,18 @@ export class BoardsController {
     return this.boardsService.findOne(term);
   }
 
+  @Auth(
+    Role.ADMIN,
+    Role.SUPER_ADMIN,
+    Role.READER,
+    Role.DESIGNER_ADMIN,
+    Role.PUBLISHER_ADMIN,
+  )
+  @Get('user/:userTerm')
+  findUserBoards(@Param('userTerm') userTerm: string) {
+    return this.boardsService.findUserBoards(userTerm);
+  }
+
   @Auth(Role.ADMIN, Role.SUPER_ADMIN)
   @Delete(':id')
   remove(@Param('id', ParseUUIDPipe) id: string) {
