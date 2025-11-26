@@ -160,6 +160,28 @@ export class BoardsService {
     }
   }
 
+  async leaveBoard(boardTerm: string, userId: string) {
+    const { id: boardId } = await this.findOne(boardTerm);
+
+    await this.usersService.findOne(userId);
+
+    const assignment = await this.prisma.userBoard.findFirst({
+      where: { boardId, userId },
+    });
+
+    if (!assignment) {
+      throw new NotFoundException(
+        `El usuario ${userId} no está asignado al tablero ${boardId}`,
+      );
+    }
+
+    try {
+      await this.prisma.userBoard.delete({ where: { id: assignment.id } });
+    } catch (error) {
+      this.handleDBErrors(error);
+    }
+  }
+
   async userIsInBoard(boardId: string, userId: string) {
     const { role: userRole } = await this.usersService.findOne(userId);
 

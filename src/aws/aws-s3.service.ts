@@ -56,7 +56,7 @@ export class AwsS3Service {
         }),
       );
     } catch (error) {
-      console.log(error);
+      this.logger.error(error);
       throw new InternalServerErrorException('Error uploading file to S3');
     }
   }

@@ -75,4 +75,13 @@ export class BoardsController {
   remove(@Param('id', ParseUUIDPipe) id: string) {
     return this.boardsService.remove(id);
   }
+
+  @Auth(Role.ADMIN, Role.SUPER_ADMIN)
+  @Delete(':boardTerm/leave-user/:userId')
+  leaveBoard(
+    @Param('boardTerm') boardTerm: string,
+    @Param('userId', ParseUUIDPipe) userId: string,
+  ) {
+    return this.boardsService.leaveBoard(boardTerm, userId);
+  }
 }

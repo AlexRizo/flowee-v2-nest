@@ -1,14 +1,10 @@
-import {
-  CanActivate,
-  ExecutionContext,
-  ForbiddenException,
-  Injectable,
-} from '@nestjs/common';
+import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { Role } from '@prisma/client';
 import { WS_ROLE_KEY } from '../decorators/ws-roles.decorator';
 import { WsClientData } from './interfaces/ws.interface';
 import { Socket } from 'socket.io';
+import { WsException } from '@nestjs/websockets';
 
 @Injectable()
 export class WsRolesGuard implements CanActivate {
@@ -28,13 +24,13 @@ export class WsRolesGuard implements CanActivate {
     const user = (client.data as WsClientData).user;
 
     if (!user) {
-      throw new ForbiddenException('Usuario no autenticado');
+      throw new WsException('Usuario no autenticado');
     }
 
     const hasRole = requiredRoles.includes(user.role);
 
     if (!hasRole) {
-      throw new ForbiddenException('Usuario no autorizado');
+      throw new WsException('Usuario no autorizado');
     }
 
     return true;

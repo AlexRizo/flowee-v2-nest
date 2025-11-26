@@ -1,4 +1,9 @@
-import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common';
+import {
+  CanActivate,
+  ExecutionContext,
+  Injectable,
+  Logger,
+} from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { parse } from 'cookie';
 import { Socket } from 'socket.io';
@@ -6,6 +11,7 @@ import { UserPayload } from '../interfaces/jwt.interface';
 import { ConfigService } from '@nestjs/config';
 import { Env } from 'src/config/env.validation';
 import { WsClientData } from './interfaces/ws.interface';
+import { WsException } from '@nestjs/websockets';
 
 @Injectable()
 export class WsAuthGuard implements CanActivate {
@@ -13,6 +19,7 @@ export class WsAuthGuard implements CanActivate {
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService<Env, true>,
   ) {}
+  private readonly logger = new Logger(WsAuthGuard.name);
 
   canActivate(context: ExecutionContext): boolean {
     const client = context.switchToWs().getClient<Socket<WsClientData>>();
@@ -25,7 +32,7 @@ export class WsAuthGuard implements CanActivate {
       const xsrfToken = cookies['XSRF-TOKEN'];
 
       if (!accessToken || !xsrfToken) {
-        console.log('missing access token or xsrf token');
+        this.logger.log('missing access token or xsrf token');
         return false;
       }
 
@@ -34,7 +41,7 @@ export class WsAuthGuard implements CanActivate {
       });
 
       if (payload.xsrf !== xsrfToken) {
-        console.log('xsrf token does not match');
+        new WsException('xsrf token does not match');
         return false;
       }
 
@@ -42,7 +49,8 @@ export class WsAuthGuard implements CanActivate {
 
       return true;
     } catch (error) {
-      console.log('WebSocket authentication failed:', error);
+      this.logger.error(error);
+      new WsException('WebSocket authentication failed');
       return false;
     }
   }
