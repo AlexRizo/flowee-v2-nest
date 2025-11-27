@@ -7,12 +7,17 @@ import {
   Delete,
   ParseUUIDPipe,
   Patch,
+  UseInterceptors,
+  UploadedFile,
 } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { Auth } from 'src/auth/decorators/auth.decorator';
 import { Role } from '@prisma/client';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { memoryStorage } from 'multer';
+import { UploadAvatarPipe } from './pipes/upload-avatar.pipe';
 
 @Controller('users')
 export class UsersController {
@@ -43,6 +48,20 @@ export class UsersController {
     @Body() updateUserDto: UpdateUserDto,
   ) {
     return this.usersService.update(id, updateUserDto);
+  }
+
+  @Auth()
+  @Patch(':id/avatar')
+  @UseInterceptors(
+    FileInterceptor('avatar', {
+      storage: memoryStorage(),
+    }),
+  )
+  updateAvatar(
+    @Param('id', ParseUUIDPipe) id: string,
+    @UploadedFile(new UploadAvatarPipe()) file: Express.Multer.File,
+  ) {
+    return this.usersService.uploadAvatar(id, file);
   }
 
   // ? Realiza un soft-delete

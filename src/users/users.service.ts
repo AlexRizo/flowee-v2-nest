@@ -10,10 +10,14 @@ import { PrismaService } from 'src/prisma/prisma.service';
 import * as bcrypt from 'bcrypt';
 import { Prisma } from '@prisma/client';
 import { isEmail, isUUID } from 'class-validator';
+import { AwsS3Service } from 'src/aws/aws-s3.service';
 
 @Injectable()
 export class UsersService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly awsService: AwsS3Service,
+  ) {}
 
   private readonly logger = new Logger(UsersService.name);
 
@@ -96,6 +100,23 @@ export class UsersService {
       });
 
       return user;
+    } catch (error) {
+      this.handleDBErrors(error);
+    }
+  }
+
+  async uploadAvatar(userId: string, file: Express.Multer.File) {
+    await this.findOne(userId);
+
+    try {
+      const { key } = await this.awsService.uploadPublicFile(file, 'avatars');
+
+      await this.prisma.user.update({
+        where: { id: userId },
+        data: { avatar: key },
+      });
+
+      return { message: 'Avatar subido correctamente', avatar: key };
     } catch (error) {
       this.handleDBErrors(error);
     }
