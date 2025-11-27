@@ -214,9 +214,9 @@ export class BoardsService {
   }
 
   async leaveBoard(boardTerm: string, userId: string) {
-    const { id: boardId } = await this.findOne(boardTerm);
+    const { id: boardId, name: boardName } = await this.findOne(boardTerm);
 
-    await this.usersService.findOne(userId);
+    const { name: userName } = await this.usersService.findOne(userId);
 
     const assignment = await this.prisma.userBoard.findFirst({
       where: { boardId, userId },
@@ -224,7 +224,7 @@ export class BoardsService {
 
     if (!assignment) {
       throw new NotFoundException(
-        `El usuario ${userId} no está asignado al tablero ${boardId}`,
+        `El usuario ${userName} no está asignado al tablero ${boardName}`,
       );
     }
 
