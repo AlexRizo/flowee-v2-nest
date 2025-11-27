@@ -3,7 +3,11 @@ import {
   InternalServerErrorException,
   Logger,
 } from '@nestjs/common';
-import { PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
+import {
+  DeleteObjectCommand,
+  PutObjectCommand,
+  S3Client,
+} from '@aws-sdk/client-s3';
 import { ConfigService } from '@nestjs/config';
 import { Env } from 'src/config/env.validation';
 import { sanitizeFileName } from './helpers/files';
@@ -160,5 +164,19 @@ export class AwsS3Service {
       rejectedFiles,
       successfulFiles,
     };
+  }
+
+  async deleteFile(key: string) {
+    try {
+      await this.s3Client.send(
+        new DeleteObjectCommand({
+          Bucket: this.bucketName,
+          Key: key,
+        }),
+      );
+    } catch (error) {
+      this.logger.error(error);
+      throw new InternalServerErrorException('Error deleting file from S3');
+    }
   }
 }

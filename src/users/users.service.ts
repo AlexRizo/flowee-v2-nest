@@ -106,7 +106,11 @@ export class UsersService {
   }
 
   async uploadAvatar(userId: string, file: Express.Multer.File) {
-    await this.findOne(userId);
+    const { avatar } = await this.findOne(userId);
+
+    if (avatar) {
+      await this.awsService.deleteFile(avatar);
+    }
 
     try {
       const { key } = await this.awsService.uploadPublicFile(file, 'avatars');
