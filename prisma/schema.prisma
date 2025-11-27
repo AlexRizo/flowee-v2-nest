@@ -64,6 +64,8 @@ model UserBoard {
   user      User     @relation(fields: [userId], references: [id])
   board     Board    @relation(fields: [boardId], references: [id])
   createdAt DateTime @default(now())
+
+  @@unique([userId, boardId])
 }
 
 // ? Tareas

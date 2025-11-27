@@ -8,7 +8,7 @@ import {
 import { CreateBoardDto } from './dto/create-board.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { UsersService } from 'src/users/users.service';
-import { Board, Prisma, Role } from '@prisma/client';
+import { Board, Prisma, Role, TaskStatus } from '@prisma/client';
 import { isUUID } from 'class-validator';
 import { AssignManyBoardsDto } from './dto/assign-many-boards.dto';
 
@@ -146,6 +146,59 @@ export class BoardsService {
     const boards = userBoards.map(userBoard => userBoard.board);
 
     return boards;
+  }
+
+  async findBoardUsers(boardId: string, role?: Role) {
+    const { name: boardName } = await this.findOne(boardId);
+
+    const where = role ? { boardId, user: { role } } : { boardId };
+
+    //* Consulta separada para evitar el código hadouken;
+    const userWhere = {
+      status: {
+        in: [TaskStatus.PENDING, TaskStatus.IN_PROGRESS, TaskStatus.FOR_REVIEW],
+      },
+    };
+
+    const userInclude = {
+      assignedTasks: {
+        where: userWhere,
+        select: {
+          id: true,
+          status: true,
+        },
+      },
+    };
+
+    const boardUsers = await this.prisma.userBoard.findMany({
+      where,
+      include: {
+        user: { include: userInclude },
+      },
+    });
+
+    if (!boardUsers || !boardUsers.length) {
+      throw new NotFoundException(
+        `No se encontraron usuarios para el tablero ${boardName}`,
+      );
+    }
+
+    const users = boardUsers.map(({ user }) => ({
+      ...user,
+      tasksCount: {
+        pending: user.assignedTasks.filter(
+          task => task.status === TaskStatus.PENDING,
+        ).length,
+        inProgress: user.assignedTasks.filter(
+          task => task.status === TaskStatus.IN_PROGRESS,
+        ).length,
+        forReview: user.assignedTasks.filter(
+          task => task.status === TaskStatus.FOR_REVIEW,
+        ).length,
+      },
+    }));
+
+    return users;
   }
 
   async remove(id: string) {

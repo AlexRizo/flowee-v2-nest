@@ -45,6 +45,11 @@ export class TasksService {
     return tasks;
   }
 
+  // ? Este método obtiene las tareas de un tablero.
+  // ? Si el usuario es ADMIN, SUPER_ADMIN, READER, DESIGNER_ADMIN o PUBLISHER_ADMIN,
+  // ? se obtienen todas las tareas del tablero.
+  // ? Si el usuario es DESIGNER o PUBLISHER,
+  // ? se obtienen solo las tareas asignadas al usuario.
   async findTasksByBoard(boardId: string, userId: string) {
     await this.boardsService.findOne(boardId);
     const { role: userRole } = await this.usersService.findOne(userId);
@@ -64,7 +69,10 @@ export class TasksService {
       userRole === this.roles.DESIGNER_ADMIN ||
       userRole === this.roles.PUBLISHER_ADMIN
     ) {
-      tasks = await this.prisma.task.findMany({ where: { boardId }, include });
+      tasks = await this.prisma.task.findMany({
+        where: { boardId, assignedToId: { not: null } },
+        include,
+      });
     } else {
       tasks = await this.prisma.task.findMany({
         where: {
@@ -73,6 +81,24 @@ export class TasksService {
         },
         include,
       });
+    }
+
+    return tasks;
+  }
+
+  async findPendingTasksByBoard(boardId: string) {
+    await this.boardsService.findOne(boardId);
+
+    const tasks = await this.prisma.task.findMany({
+      where: { boardId, assignedTo: null },
+      include: {
+        board: true,
+        author: true,
+      },
+    });
+
+    if (!tasks || !tasks.length) {
+      return [];
     }
 
     return tasks;

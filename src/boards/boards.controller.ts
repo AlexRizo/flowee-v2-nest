@@ -6,6 +6,8 @@ import {
   Param,
   ParseUUIDPipe,
   Delete,
+  ParseEnumPipe,
+  Query,
 } from '@nestjs/common';
 import { BoardsService } from './boards.service';
 import { CreateBoardDto } from './dto/create-board.dto';
@@ -68,6 +70,15 @@ export class BoardsController {
   @Get('user/:userTerm')
   findUserBoards(@Param('userTerm') userTerm: string) {
     return this.boardsService.findUserBoards(userTerm);
+  }
+
+  @Auth(Role.ADMIN, Role.SUPER_ADMIN, Role.READER, Role.DESIGNER_ADMIN)
+  @Get(':boardId/users')
+  findBoardUsers(
+    @Param('boardId', ParseUUIDPipe) boardId: string,
+    @Query('role', new ParseEnumPipe(Role, { optional: true })) role?: Role,
+  ) {
+    return this.boardsService.findBoardUsers(boardId, role);
   }
 
   @Auth(Role.ADMIN, Role.SUPER_ADMIN)

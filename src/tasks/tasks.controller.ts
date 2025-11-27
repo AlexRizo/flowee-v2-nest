@@ -37,6 +37,18 @@ export class TasksController {
     return this.tasksService.findTasksByBoard(boardId, userId);
   }
 
+  @Auth(
+    Role.ADMIN,
+    Role.SUPER_ADMIN,
+    Role.DESIGNER_ADMIN,
+    Role.PUBLISHER_ADMIN,
+    Role.READER,
+  )
+  @Get('board/:boardId/pending')
+  findPendingTasksByBoard(@Param('boardId', ParseUUIDPipe) boardId: string) {
+    return this.tasksService.findPendingTasksByBoard(boardId);
+  }
+
   // ? Tareas Especiales
   @Auth(
     Role.SUPER_ADMIN,
