@@ -12,6 +12,7 @@ import { UsersService } from 'src/users/users.service';
 import { type FilesPayload } from './pipes/task-files-payload.pipe';
 import { AwsS3Service } from 'src/aws/aws-s3.service';
 import { UpdateTaskStatusDto } from './dto/udpate-task-status.dto';
+import { AssignTaskDto } from 'src/boards/dto/assign-task.dto';
 
 @Injectable()
 export class TasksService {
@@ -155,6 +156,22 @@ export class TasksService {
       const updatedTask = await this.prisma.task.update({
         where: { id: taskId },
         data: { status: toStatus },
+      });
+
+      return updatedTask;
+    } catch (error) {
+      this.handleDBErrors(error);
+    }
+  }
+
+  async assignTask({ taskId, userId }: AssignTaskDto) {
+    await this.findOne(taskId);
+    await this.usersService.findOne(userId);
+
+    try {
+      const updatedTask = await this.prisma.task.update({
+        where: { id: taskId },
+        data: { assignedToId: userId },
       });
 
       return updatedTask;

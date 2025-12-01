@@ -1,16 +1,16 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { Server } from 'socket.io';
 import { UsersService } from 'src/users/users.service';
 import { BoardsService } from 'src/boards/boards.service';
 import { AuthSocket, ConnectedClients } from './interfaces/task-ws.interface';
 import { UpdateTaskWsStatusDto } from './dto/update-task-ws-status.dto';
 import { TasksService } from 'src/tasks/tasks.service';
 import { WsException } from '@nestjs/websockets';
+import { AssignTaskDto } from '../boards/dto/assign-task.dto';
+import { Role } from '@prisma/client';
 
 @Injectable()
 export class TaskWsService {
   private connectedClients: ConnectedClients = {};
-  private readonly boardRoom = 'board-';
 
   private readonly logger = new Logger(TaskWsService.name);
 
@@ -20,8 +20,20 @@ export class TaskWsService {
     private readonly taskService: TasksService,
   ) {}
 
+  private adminBoardRoom(boardId: string) {
+    return `board-${boardId}:admin`;
+  }
+
+  private userRoom(userId: string) {
+    return `user-${userId}`;
+  }
+
   getConnectedClients() {
     return this.connectedClients;
+  }
+
+  getConnectedClient(userId: string) {
+    return this.connectedClients[userId];
   }
 
   async registerClient(client: AuthSocket, userId: string) {
@@ -39,6 +51,8 @@ export class TaskWsService {
       socket: client,
       user,
     };
+
+    await client.join(this.userRoom(user.id));
   }
 
   removeClient(userId: string) {
@@ -46,13 +60,23 @@ export class TaskWsService {
   }
 
   async joinUserToBoard(client: AuthSocket, boardId: string) {
-    const userIsInBoard = await this.boardsService.userIsInBoard(
-      boardId,
-      client.userId,
-    );
+    // const userIsInBoard = await this.boardsService.userIsInBoard(
+    //   boardId,
+    //   client.userId,
+    // );
 
-    if (userIsInBoard) {
-      await client.join(this.boardRoom + boardId);
+    const { user } = this.getConnectedClient(client.userId);
+
+    const adminRoles: Role[] = [
+      Role.ADMIN,
+      Role.SUPER_ADMIN,
+      Role.READER,
+      Role.DESIGNER_ADMIN,
+      Role.PUBLISHER_ADMIN,
+    ];
+
+    if (adminRoles.includes(user.role)) {
+      await client.join(this.adminBoardRoom(boardId));
     } else {
       this.sendExceptionMessage(
         client,
@@ -64,7 +88,6 @@ export class TaskWsService {
   async updateTaskStatus(
     client: AuthSocket,
     { taskId, toStatus, fromStatus }: UpdateTaskWsStatusDto,
-    server: Server,
   ) {
     try {
       const task = await this.taskService.updateTaskStatus({
@@ -72,20 +95,58 @@ export class TaskWsService {
         toStatus,
       });
 
-      server.to(this.boardRoom + task.boardId).emit('task-status-updated', {
+      const payload = {
         taskId,
         toStatus,
         fromStatus,
         clientId: client.id,
-      });
+      };
+
+      if (task.assignedToId) {
+        client
+          .to(this.userRoom(task.assignedToId))
+          .emit('task-status-updated', payload);
+      }
+
+      client
+        .to(this.adminBoardRoom(task.boardId))
+        .emit('task-status-updated', payload);
     } catch (error) {
       this.sendExceptionMessage(
         client,
         'No se pudo actualizar el estado de la tarea. Inténtalo de nuevo.',
       );
       this.logger.error((error as Error).message);
-      return new WsException(error as Error);
+      throw new WsException(error as Error);
     }
+  }
+
+  async assignTask(client: AuthSocket, { taskId, userId }: AssignTaskDto) {
+    try {
+      const task = await this.taskService.assignTask({
+        taskId,
+        userId,
+      });
+
+      client.to(this.userRoom(userId)).emit('task-assigned', {
+        task,
+      });
+
+      client.to(this.adminBoardRoom(task.boardId)).emit('task-assigned', {
+        task,
+      });
+    } catch (error) {
+      this.sendExceptionMessage(
+        client,
+        'No se pudo asignar la tarea. Inténtalo de nuevo.',
+      );
+      this.logger.error((error as Error).message);
+      throw new WsException(error as Error);
+    }
+  }
+
+  private sendNotification(toId: string, payload: { message: string }) {
+    // this.client.emit(this.userRoom(toId)).to('notification', payload);
   }
 
   sendExceptionMessage(client: AuthSocket, message: string) {

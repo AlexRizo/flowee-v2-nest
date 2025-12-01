@@ -55,6 +55,6 @@ export class TaskWsGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   @SubscribeMessage('move-task-status')
   async updateTaskStatus(client: AuthSocket, payload: UpdateTaskWsStatusDto) {
-    await this.taskWsService.updateTaskStatus(client, payload, this.server);
+    await this.taskWsService.updateTaskStatus(client, payload);
   }
 }
