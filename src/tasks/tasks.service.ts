@@ -172,6 +172,11 @@ export class TasksService {
       const updatedTask = await this.prisma.task.update({
         where: { id: taskId },
         data: { assignedToId: userId },
+        include: {
+          board: true,
+          assignedTo: true,
+          author: true,
+        },
       });
 
       return updatedTask;

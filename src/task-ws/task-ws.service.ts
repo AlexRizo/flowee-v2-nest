@@ -1,17 +1,13 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { UsersService } from 'src/users/users.service';
 import { BoardsService } from 'src/boards/boards.service';
-import { AuthSocket, ConnectedClients } from './interfaces/task-ws.interface';
 import { UpdateTaskWsStatusDto } from './dto/update-task-ws-status.dto';
 import { TasksService } from 'src/tasks/tasks.service';
-import { WsException } from '@nestjs/websockets';
 import { AssignTaskDto } from '../boards/dto/assign-task.dto';
 import { Role } from '@prisma/client';
 
 @Injectable()
 export class TaskWsService {
-  private connectedClients: ConnectedClients = {};
-
   private readonly logger = new Logger(TaskWsService.name);
 
   constructor(
@@ -20,52 +16,40 @@ export class TaskWsService {
     private readonly taskService: TasksService,
   ) {}
 
-  private adminBoardRoom(boardId: string) {
-    return `board-${boardId}:admin`;
-  }
+  async updateTaskStatus({
+    taskId,
+    toStatus,
+    fromStatus,
+  }: UpdateTaskWsStatusDto) {
+    const updatedTask = await this.taskService.updateTaskStatus({
+      taskId,
+      toStatus,
+    });
 
-  private userRoom(userId: string) {
-    return `user-${userId}`;
-  }
-
-  getConnectedClients() {
-    return this.connectedClients;
-  }
-
-  getConnectedClient(userId: string) {
-    return this.connectedClients[userId];
-  }
-
-  async registerClient(client: AuthSocket, userId: string) {
-    const user = await this.usersService.findOne(userId);
-
-    client.userId = user.id;
-
-    const isLoggedIn = this.connectedClients[user.id];
-
-    if (isLoggedIn) {
-      this.logoutWs(isLoggedIn.socket);
-    }
-
-    this.connectedClients[user.id] = {
-      socket: client,
-      user,
+    return {
+      task: updatedTask,
+      fromStatus,
+      toStatus,
     };
-
-    await client.join(this.userRoom(user.id));
   }
 
-  removeClient(userId: string) {
-    delete this.connectedClients[userId];
+  async assignTask({ taskId, userId }: AssignTaskDto) {
+    const oldTask = await this.taskService.findOne(taskId);
+
+    const updatedTask = await this.taskService.assignTask({
+      taskId,
+      userId,
+    });
+
+    return {
+      task: updatedTask,
+      oldAssigneeId: oldTask.assignedToId,
+      newAssigneeId: userId,
+    };
   }
 
-  async joinUserToBoard(client: AuthSocket, boardId: string) {
-    // const userIsInBoard = await this.boardsService.userIsInBoard(
-    //   boardId,
-    //   client.userId,
-    // );
-
-    const { user } = this.getConnectedClient(client.userId);
+  async validateJoinBoard(userId: string) {
+    const { role: currentUserRole } = await this.usersService.findOne(userId);
 
     const adminRoles: Role[] = [
       Role.ADMIN,
@@ -75,88 +59,15 @@ export class TaskWsService {
       Role.PUBLISHER_ADMIN,
     ];
 
-    if (adminRoles.includes(user.role)) {
-      await client.join(this.adminBoardRoom(boardId));
-    } else {
-      this.sendExceptionMessage(
-        client,
-        'No tienes permisos para unirte a este tablero',
-      );
-    }
+    return adminRoles.includes(currentUserRole);
   }
 
-  async updateTaskStatus(
-    client: AuthSocket,
-    { taskId, toStatus, fromStatus }: UpdateTaskWsStatusDto,
-  ) {
-    try {
-      const task = await this.taskService.updateTaskStatus({
-        taskId,
-        toStatus,
-      });
+  async userIsBoardMember(boardId: string, userId: string) {
+    const userIsInBoard = await this.boardsService.userIsInBoard(
+      boardId,
+      userId,
+    );
 
-      const payload = {
-        taskId,
-        toStatus,
-        fromStatus,
-        clientId: client.id,
-      };
-
-      if (task.assignedToId) {
-        client
-          .to(this.userRoom(task.assignedToId))
-          .emit('task-status-updated', payload);
-      }
-
-      client
-        .to(this.adminBoardRoom(task.boardId))
-        .emit('task-status-updated', payload);
-    } catch (error) {
-      this.sendExceptionMessage(
-        client,
-        'No se pudo actualizar el estado de la tarea. Inténtalo de nuevo.',
-      );
-      this.logger.error((error as Error).message);
-      throw new WsException(error as Error);
-    }
-  }
-
-  async assignTask(client: AuthSocket, { taskId, userId }: AssignTaskDto) {
-    try {
-      const task = await this.taskService.assignTask({
-        taskId,
-        userId,
-      });
-
-      client.to(this.userRoom(userId)).emit('task-assigned', {
-        task,
-      });
-
-      client.to(this.adminBoardRoom(task.boardId)).emit('task-assigned', {
-        task,
-      });
-    } catch (error) {
-      this.sendExceptionMessage(
-        client,
-        'No se pudo asignar la tarea. Inténtalo de nuevo.',
-      );
-      this.logger.error((error as Error).message);
-      throw new WsException(error as Error);
-    }
-  }
-
-  private sendNotification(toId: string, payload: { message: string }) {
-    // this.client.emit(this.userRoom(toId)).to('notification', payload);
-  }
-
-  sendExceptionMessage(client: AuthSocket, message: string) {
-    client.emit('exception-message', { message });
-  }
-
-  private logoutWs(client: AuthSocket) {
-    client.emit('ws-logout', {
-      message: 'Sesión cerrada desde otro dispositivo',
-    });
-    client.disconnect(true);
+    return userIsInBoard;
   }
 }
