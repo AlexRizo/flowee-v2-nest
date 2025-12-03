@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { UsersService } from 'src/users/users.service';
 import { BoardsService } from 'src/boards/boards.service';
 import { UpdateTaskWsStatusDto } from './dto/update-task-ws-status.dto';
@@ -8,8 +8,6 @@ import { Role } from '@prisma/client';
 
 @Injectable()
 export class TaskWsService {
-  private readonly logger = new Logger(TaskWsService.name);
-
   constructor(
     private readonly usersService: UsersService,
     private readonly boardsService: BoardsService,

@@ -4,7 +4,6 @@ import {
   OnGatewayDisconnect,
   WebSocketServer,
   SubscribeMessage,
-  WsException,
 } from '@nestjs/websockets';
 import { TaskWsService } from './task-ws.service';
 import { Server } from 'socket.io';
@@ -41,6 +40,7 @@ export class TaskWsGateway implements OnGatewayConnection, OnGatewayDisconnect {
     );
 
     if (!payload) {
+      client.emit('exception', { message: 'Unauthorized' });
       client.disconnect();
       return;
     }
@@ -63,23 +63,6 @@ export class TaskWsGateway implements OnGatewayConnection, OnGatewayDisconnect {
         const adminRoom = this.getAdminBoardRoom(boardId);
         await client.join(adminRoom);
       }
-
-      const isMember = await this.taskWsService.userIsBoardMember(
-        boardId,
-        client.userId,
-      );
-
-      if (!isAdmin && !isMember) {
-        const message = 'No tienes permiso para unirte a este tablero';
-
-        this.sendExceptionMessage(client, {
-          message,
-        });
-        throw new WsException(message);
-      }
-
-      const boardRoom = this.getBoardRoom(boardId);
-      await client.join(boardRoom);
     } catch (error) {
       this.handleError(client, error);
     }
@@ -101,7 +84,7 @@ export class TaskWsGateway implements OnGatewayConnection, OnGatewayDisconnect {
         message: 'Se te ha asignado una nueva tarea',
       });
 
-      client.to(this.getBoardRoom(task.boardId)).emit('task-assigned', {
+      client.to(this.getAdminBoardRoom(task.boardId)).emit('task-assigned', {
         task,
       });
     } catch (error) {
@@ -115,17 +98,41 @@ export class TaskWsGateway implements OnGatewayConnection, OnGatewayDisconnect {
       const { task, fromStatus, toStatus } =
         await this.taskWsService.updateTaskStatus(payload);
 
-      if (task.assignedToId) {
-        client.to(this.getUserRoom(task.assignedToId)).emit('notification', {
-          message: 'Una de tus tareas ha sido actualizada',
-        });
-      }
-
-      client.to(this.getBoardRoom(task.boardId)).emit('task-status-updated', {
+      const taskData = {
         taskId: task.id,
         fromStatus,
         toStatus,
-      });
+      };
+
+      const senderUserId = client.userId;
+
+      const usersToEmit = new Set<string>();
+
+      usersToEmit.add(task.authorId);
+      if (task.assignedToId) {
+        usersToEmit.add(task.assignedToId);
+      }
+
+      if (usersToEmit.has(senderUserId)) {
+        usersToEmit.delete(senderUserId);
+      }
+
+      const usersToEmitArray = Array.from(usersToEmit).map(id =>
+        this.getUserRoom(id),
+      );
+
+      if (usersToEmitArray.length > 0) {
+        this.server.to(usersToEmitArray).emit('notification', {
+          message: `La tarea ${task.title} ha sido movida de ${fromStatus} a ${toStatus}`,
+        });
+        this.server.to(usersToEmitArray).emit('task-moved', taskData);
+      }
+
+      client.broadcast
+        .to(this.getAdminBoardRoom(task.boardId))
+        .emit('task-moved', taskData);
+
+      console.log(client.userId, client.rooms);
     } catch (error) {
       this.handleError(client, error);
     }
@@ -139,16 +146,12 @@ export class TaskWsGateway implements OnGatewayConnection, OnGatewayDisconnect {
     return `admin:board-${boardId}`;
   }
 
-  private getBoardRoom(boardId: string) {
-    return `board-${boardId}`;
-  }
+  // private getBoardRoom(boardId: string) {
+  //   return `board-${boardId}`;
+  // }
 
   private getUserRoom(userId: string) {
     return `user-${userId}`;
-  }
-
-  private userIsInBoardRoom(client: AuthSocket, boardId: string) {
-    return client.rooms.has(this.getBoardRoom(boardId));
   }
 
   private sendNotification(client: AuthSocket, payload: { message: string }) {

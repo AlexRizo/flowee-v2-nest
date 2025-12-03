@@ -4,7 +4,7 @@ import {
   Injectable,
   Logger,
 } from '@nestjs/common';
-import { JwtService } from '@nestjs/jwt';
+import { JwtService, TokenExpiredError } from '@nestjs/jwt';
 import { parse } from 'cookie';
 import { Socket } from 'socket.io';
 import { UserPayload } from '../interfaces/jwt.interface';
@@ -32,8 +32,7 @@ export class WsAuthGuard implements CanActivate {
       const xsrfToken = cookies['XSRF-TOKEN'];
 
       if (!accessToken || !xsrfToken) {
-        this.logger.log('missing access token or xsrf token');
-        return false;
+        throw new WsException('Forbidden');
       }
 
       const payload = this.jwtService.verify<UserPayload>(accessToken, {
@@ -41,17 +40,19 @@ export class WsAuthGuard implements CanActivate {
       });
 
       if (payload.xsrf !== xsrfToken) {
-        new WsException('xsrf token does not match');
-        return false;
+        throw new WsException('xsrf token does not match');
       }
 
       (client.data as WsClientData).user = payload;
 
       return true;
     } catch (error) {
+      if (error instanceof TokenExpiredError) {
+        throw new WsException('Unauthorized');
+      }
+
       this.logger.error(error);
-      new WsException('WebSocket authentication failed');
-      return false;
+      throw new WsException('Forbidden');
     }
   }
 }
