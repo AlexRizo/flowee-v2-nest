@@ -1,13 +1,9 @@
-import { User } from '@prisma/client';
 import { Socket } from 'socket.io';
+import { UserPayload } from 'src/auth/interfaces/jwt.interface';
 
 export interface AuthSocket extends Socket {
   userId: string;
-}
-
-export interface ConnectedClients {
-  [userId: string]: {
-    socket: AuthSocket;
-    user: Omit<User, 'password' | 'refreshToken'>;
+  data: {
+    user: Pick<UserPayload, 'username' | 'email' | 'role'>;
   };
 }

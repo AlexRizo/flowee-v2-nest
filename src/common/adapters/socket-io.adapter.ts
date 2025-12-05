@@ -19,6 +19,7 @@ export class SocketIoAdapter extends IoAdapter {
       ...options,
       cors: {
         origin: corsOrigin,
+        credentials: true,
       },
     };
 

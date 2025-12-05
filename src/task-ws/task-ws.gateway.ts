@@ -45,14 +45,19 @@ export class TaskWsGateway implements OnGatewayConnection, OnGatewayDisconnect {
       return;
     }
 
-    client.userId = payload.id;
+    const { id, username, email, role } = payload;
 
-    const personalRoom = this.getUserRoom(payload.id);
+    client.data.user = { username, email, role };
+    client.userId = id;
+
+    const personalRoom = this.getUserRoom(id);
 
     await client.join(personalRoom);
   }
 
-  handleDisconnect() {}
+  handleDisconnect(client: AuthSocket) {
+    console.log(`cliente ${client.userId} desconectado`);
+  }
 
   @SubscribeMessage('join-board')
   async joinBoard(client: AuthSocket, { boardId }: JoinUserBoardDto) {
@@ -131,8 +136,6 @@ export class TaskWsGateway implements OnGatewayConnection, OnGatewayDisconnect {
       client.broadcast
         .to(this.getAdminBoardRoom(task.boardId))
         .emit('task-moved', taskData);
-
-      console.log(client.userId, client.rooms);
     } catch (error) {
       this.handleError(client, error);
     }

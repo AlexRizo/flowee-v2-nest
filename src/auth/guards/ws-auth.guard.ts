@@ -24,6 +24,12 @@ export class WsAuthGuard implements CanActivate {
   canActivate(context: ExecutionContext): boolean {
     const client = context.switchToWs().getClient<Socket<WsClientData>>();
 
+    const user = (client.data as WsClientData).user;
+
+    if (user) {
+      return true;
+    }
+
     try {
       const cookieHeader = client.handshake.headers.cookie || '';
       const cookies = parse(cookieHeader);
