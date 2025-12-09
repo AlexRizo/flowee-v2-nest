@@ -5,7 +5,7 @@ import {
   Logger,
   NotFoundException,
 } from '@nestjs/common';
-import { Prisma, Role, Task, TaskFileType } from '@prisma/client';
+import { Prisma, TaskFileType } from '@prisma/client';
 import { BoardsService } from 'src/boards/boards.service';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { UsersService } from 'src/users/users.service';
@@ -23,7 +23,6 @@ export class TasksService {
     private readonly awsS3Service: AwsS3Service,
   ) {}
 
-  private roles = Role;
   private readonly logger = new Logger(TasksService.name);
 
   async findOne(id: string) {
@@ -46,43 +45,38 @@ export class TasksService {
     return tasks;
   }
 
-  // ? Este método obtiene las tareas de un tablero.
-  // ? Si el usuario es ADMIN, SUPER_ADMIN, READER, DESIGNER_ADMIN o PUBLISHER_ADMIN,
-  // ? se obtienen todas las tareas del tablero.
-  // ? Si el usuario es DESIGNER o PUBLISHER,
-  // ? se obtienen solo las tareas asignadas al usuario.
-  async findTasksByBoard(boardId: string, userId: string) {
+  // ? Este método obtiene las tareas de un tablero asignadas al usuario.
+  async findMyTasksByBoard(boardId: string, userId: string) {
     await this.boardsService.findOne(boardId);
-    const { role: userRole } = await this.usersService.findOne(userId);
 
-    let tasks: Task[];
+    const tasks = await this.prisma.task.findMany({
+      where: {
+        boardId,
+        OR: [{ authorId: userId }, { assignedToId: userId }],
+      },
+      include: {
+        board: true,
+        author: true,
+        assignedTo: true,
+      },
+    });
 
-    const include = {
-      board: true,
-      author: true,
-      assignedTo: true,
-    };
+    return tasks;
+  }
 
-    if (
-      userRole === this.roles.ADMIN ||
-      userRole === this.roles.SUPER_ADMIN ||
-      userRole === this.roles.READER ||
-      userRole === this.roles.DESIGNER_ADMIN ||
-      userRole === this.roles.PUBLISHER_ADMIN
-    ) {
-      tasks = await this.prisma.task.findMany({
-        where: { boardId, assignedToId: { not: null } },
-        include,
-      });
-    } else {
-      tasks = await this.prisma.task.findMany({
-        where: {
-          boardId,
-          OR: [{ authorId: userId }, { assignedToId: userId }],
-        },
-        include,
-      });
-    }
+  // ? Este método obtiene las tareas de un tablero.
+  // ? se obtienen todas las tareas del tablero.
+  async findTasksByBoard(boardId: string) {
+    await this.boardsService.findOne(boardId);
+
+    const tasks = await this.prisma.task.findMany({
+      where: { boardId, assignedToId: { not: null } },
+      include: {
+        board: true,
+        author: true,
+        assignedTo: true,
+      },
+    });
 
     return tasks;
   }

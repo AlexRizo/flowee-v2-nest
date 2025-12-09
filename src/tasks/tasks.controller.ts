@@ -20,6 +20,7 @@ import {
   type FilesPayload,
   TaskFilesPayloadPipe,
 } from './pipes/task-files-payload.pipe';
+import { AdminRoles } from 'src/common/role-selector';
 
 @Controller('tasks')
 export class TasksController {
@@ -29,34 +30,28 @@ export class TasksController {
   ) {}
 
   @Auth()
-  @Get('board/:boardId')
-  findTasksByBoard(
+  @Get('my-tasks/board/:boardId')
+  findMyTasksByBoard(
     @Param('boardId', ParseUUIDPipe) boardId: string,
     @GetUser('id') userId: string,
   ) {
-    return this.tasksService.findTasksByBoard(boardId, userId);
+    return this.tasksService.findMyTasksByBoard(boardId, userId);
   }
 
-  @Auth(
-    Role.ADMIN,
-    Role.SUPER_ADMIN,
-    Role.DESIGNER_ADMIN,
-    Role.PUBLISHER_ADMIN,
-    Role.READER,
-  )
+  @Auth(...AdminRoles, Role.DESIGNER_ADMIN, Role.PUBLISHER_ADMIN)
+  @Get('board/:boardId')
+  findTasksByBoard(@Param('boardId', ParseUUIDPipe) boardId: string) {
+    return this.tasksService.findTasksByBoard(boardId);
+  }
+
+  @Auth(...AdminRoles, Role.DESIGNER_ADMIN, Role.PUBLISHER_ADMIN)
   @Get('board/:boardId/pending')
   findPendingTasksByBoard(@Param('boardId', ParseUUIDPipe) boardId: string) {
     return this.tasksService.findPendingTasksByBoard(boardId);
   }
 
   // ? Tareas Especiales
-  @Auth(
-    Role.SUPER_ADMIN,
-    Role.ADMIN,
-    Role.DESIGNER_ADMIN,
-    Role.PUBLISHER,
-    Role.PUBLISHER_ADMIN,
-  )
+  @Auth(...AdminRoles, Role.DESIGNER_ADMIN, Role.PUBLISHER_ADMIN)
   @Post('special')
   createSpecialTask(
     @Body() specialTask: CreateSpecialTaskDto,
