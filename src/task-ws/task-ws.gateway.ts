@@ -17,6 +17,7 @@ import { type AuthSocket } from './interfaces/task-ws.interface';
 import { WsAuth } from 'src/auth/decorators/ws-auth.decorator';
 import { Logger } from '@nestjs/common';
 import { AssignTaskDto } from 'src/boards/dto/assign-task.dto';
+import { getTaskStatus } from 'src/common/helpers/tasks';
 
 @WsAuth()
 @WebSocketGateway()
@@ -128,7 +129,7 @@ export class TaskWsGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
       if (usersToEmitArray.length > 0) {
         this.server.to(usersToEmitArray).emit('notification', {
-          message: `La tarea ${task.title} ha sido movida de ${fromStatus} a ${toStatus}`,
+          message: `La tarea ${task.title} ha sido movida de ${getTaskStatus(fromStatus)} a ${getTaskStatus(toStatus)}`,
         });
         this.server.to(usersToEmitArray).emit('task-moved', taskData);
       }
