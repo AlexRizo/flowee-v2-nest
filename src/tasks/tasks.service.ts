@@ -1,11 +1,12 @@
 import {
   ConflictException,
+  ForbiddenException,
   Injectable,
   InternalServerErrorException,
   Logger,
   NotFoundException,
 } from '@nestjs/common';
-import { Prisma, TaskFileType } from '@prisma/client';
+import { Prisma, Role, TaskFileType } from '@prisma/client';
 import { BoardsService } from 'src/boards/boards.service';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { UsersService } from 'src/users/users.service';
@@ -35,6 +36,42 @@ export class TasksService {
     return task;
   }
 
+  async findAsignedTasks(
+    boardId: string,
+    assigned: boolean = true,
+    userId: string,
+  ) {
+    await this.boardsService.findOne(boardId);
+
+    const userIsInBoard = await this.boardsService.userIsInBoard(
+      boardId,
+      userId,
+    );
+
+    if (!userIsInBoard) {
+      throw new ForbiddenException('El usuario no pertenece al tablero');
+    }
+
+    const where = assigned
+      ? { assignedToId: { not: null }, boardId }
+      : { boardId };
+
+    const tasks = await this.prisma.task.findMany({
+      where,
+      include: {
+        board: true,
+        author: true,
+        assignedTo: true,
+      },
+    });
+
+    if (!tasks || !tasks.length) {
+      throw new NotFoundException('No se encontraron tareas');
+    }
+
+    return tasks;
+  }
+
   async findAll() {
     const tasks = await this.prisma.task.findMany();
 
@@ -48,12 +85,21 @@ export class TasksService {
   // ? Este método obtiene las tareas de un tablero asignadas al usuario.
   async findMyTasksByBoard(boardId: string, userId: string) {
     await this.boardsService.findOne(boardId);
+    const { role } = await this.usersService.findOne(userId);
+
+    const where =
+      role === Role.DESIGNER_ADMIN || role === Role.DESIGNER
+        ? {
+            boardId,
+            AND: [{ assignedToId: userId }],
+          }
+        : {
+            boardId,
+            AND: [{ authorId: userId }, { assignedToId: { not: null } }],
+          };
 
     const tasks = await this.prisma.task.findMany({
-      where: {
-        boardId,
-        OR: [{ authorId: userId }, { assignedToId: userId }],
-      },
+      where,
       include: {
         board: true,
         author: true,

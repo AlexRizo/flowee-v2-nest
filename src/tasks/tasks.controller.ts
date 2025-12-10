@@ -7,6 +7,7 @@ import {
   ParseUUIDPipe,
   UploadedFiles,
   UseInterceptors,
+  Query,
 } from '@nestjs/common';
 import { TasksService } from './tasks.service';
 import { Auth } from 'src/auth/decorators/auth.decorator';
@@ -20,7 +21,8 @@ import {
   type FilesPayload,
   TaskFilesPayloadPipe,
 } from './pipes/task-files-payload.pipe';
-import { AdminRoles } from 'src/common/role-selector';
+import { adminRoles } from 'src/common/role-selector';
+import { GetTasksQueryDto } from './dto/get-tasks-query.dto';
 
 @Controller('tasks')
 export class TasksController {
@@ -28,6 +30,15 @@ export class TasksController {
     private readonly tasksService: TasksService,
     private readonly specialTasksService: SpecialTasksService,
   ) {}
+
+  @Auth(...adminRoles, Role.DESIGNER_ADMIN, Role.PUBLISHER_ADMIN)
+  @Get()
+  findAsignedTasks(
+    @Query() { boardId, assigned }: GetTasksQueryDto,
+    @GetUser('id') userId: string,
+  ) {
+    return this.tasksService.findAsignedTasks(boardId, assigned, userId);
+  }
 
   @Auth()
   @Get('my-tasks/board/:boardId')
@@ -38,20 +49,25 @@ export class TasksController {
     return this.tasksService.findMyTasksByBoard(boardId, userId);
   }
 
-  @Auth(...AdminRoles, Role.DESIGNER_ADMIN, Role.PUBLISHER_ADMIN)
+  @Auth(...adminRoles, Role.DESIGNER_ADMIN, Role.PUBLISHER_ADMIN)
   @Get('board/:boardId')
   findTasksByBoard(@Param('boardId', ParseUUIDPipe) boardId: string) {
     return this.tasksService.findTasksByBoard(boardId);
   }
 
-  @Auth(...AdminRoles, Role.DESIGNER_ADMIN, Role.PUBLISHER_ADMIN)
+  @Auth(...adminRoles, Role.DESIGNER_ADMIN, Role.PUBLISHER_ADMIN)
   @Get('board/:boardId/pending')
   findPendingTasksByBoard(@Param('boardId', ParseUUIDPipe) boardId: string) {
     return this.tasksService.findPendingTasksByBoard(boardId);
   }
 
   // ? Tareas Especiales
-  @Auth(...AdminRoles, Role.DESIGNER_ADMIN, Role.PUBLISHER_ADMIN)
+  @Auth(
+    ...adminRoles,
+    Role.DESIGNER_ADMIN,
+    Role.PUBLISHER_ADMIN,
+    Role.PUBLISHER,
+  )
   @Post('special')
   createSpecialTask(
     @Body() specialTask: CreateSpecialTaskDto,

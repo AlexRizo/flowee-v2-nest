@@ -56,9 +56,7 @@ export class TaskWsGateway implements OnGatewayConnection, OnGatewayDisconnect {
     await client.join(personalRoom);
   }
 
-  handleDisconnect(client: AuthSocket) {
-    console.log(`cliente ${client.userId} desconectado`);
-  }
+  handleDisconnect() {}
 
   @SubscribeMessage('join-board')
   async joinBoard(client: AuthSocket, { boardId }: JoinUserBoardDto) {
@@ -81,16 +79,35 @@ export class TaskWsGateway implements OnGatewayConnection, OnGatewayDisconnect {
         await this.taskWsService.assignTask({ taskId, userId });
 
       if (oldAssigneeId) {
-        client.to(this.getUserRoom(oldAssigneeId)).emit('notification', {
-          message: 'Una de tus tareas ha sido reasignada',
+        this.sendNotification(
+          oldAssigneeId,
+          'Una de tus tareas ha sido reasignada',
+        );
+        client.to(this.getUserRoom(oldAssigneeId)).emit('remove-task', {
+          taskId: task.id,
         });
       }
 
-      client.to(this.getUserRoom(newAssigneeId)).emit('notification', {
-        message: 'Se te ha asignado una nueva tarea',
-      });
+      this.sendNotification(newAssigneeId, 'Se te ha asignado una nueva tarea');
+      this.sendNotification(
+        task.authorId,
+        'Una de tus tareas ha sido asignada',
+      );
+
+      const usersToEmit = new Set<string>();
+      usersToEmit.add(task.authorId);
+      if (task.assignedToId) {
+        usersToEmit.add(task.assignedToId);
+      }
+
+      const usersToEmitArray = Array.from(usersToEmit).map(id =>
+        this.getUserRoom(id),
+      );
 
       client.to(this.getAdminBoardRoom(task.boardId)).emit('task-assigned', {
+        task,
+      });
+      client.to(usersToEmitArray).emit('task-assigned', {
         task,
       });
     } catch (error) {
@@ -158,8 +175,8 @@ export class TaskWsGateway implements OnGatewayConnection, OnGatewayDisconnect {
     return `user-${userId}`;
   }
 
-  private sendNotification(client: AuthSocket, payload: { message: string }) {
-    client.emit('notification', payload);
+  private sendNotification(userId: string, message: string) {
+    this.server.to(this.getUserRoom(userId)).emit('notification', { message });
   }
 
   private sendExceptionMessage(
