@@ -8,6 +8,7 @@ import {
   UploadedFiles,
   UseInterceptors,
   Query,
+  ParseBoolPipe,
 } from '@nestjs/common';
 import { TasksService } from './tasks.service';
 import { Auth } from 'src/auth/decorators/auth.decorator';
@@ -107,5 +108,15 @@ export class TasksController {
   @Get(':id/uploads')
   findTaskFiles(@Param('id', ParseUUIDPipe) id: string) {
     return this.tasksService.findTaskFiles(id);
+  }
+
+  @Auth()
+  @Get(':taskId/uploads/:fileId')
+  getTaskFileUrl(
+    @Param('taskId', ParseUUIDPipe) taskId: string,
+    @Param('fileId', ParseUUIDPipe) fileId: string,
+    @Query('download', ParseBoolPipe) download: boolean,
+  ) {
+    return this.tasksService.getTaskFileUrl(taskId, fileId, download);
   }
 }

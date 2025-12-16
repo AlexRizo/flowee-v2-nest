@@ -235,6 +235,20 @@ export class TasksService {
     return files;
   }
 
+  async getTaskFileUrl(taskId: string, fileId: string, download: boolean) {
+    await this.findOne(taskId);
+
+    const file = await this.prisma.taskFiles.findFirst({
+      where: { id: fileId, taskId },
+    });
+
+    if (!file) {
+      throw new NotFoundException('No se encontró el archivo');
+    }
+
+    return this.awsS3Service.getSignedUrl(file.key, 60, download);
+  }
+
   private handleDBErrors(error: any): never {
     if (
       error instanceof Prisma.PrismaClientKnownRequestError &&

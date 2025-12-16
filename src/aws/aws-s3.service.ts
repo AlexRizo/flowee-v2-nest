@@ -182,11 +182,16 @@ export class AwsS3Service {
     }
   }
 
-  async getSignedUrl(key: string, expires: number = 60) {
+  async getSignedUrl(
+    key: string,
+    expires: number = 60,
+    download: boolean = false,
+  ) {
     try {
       const command = new GetObjectCommand({
         Bucket: this.bucketName,
         Key: key,
+        ResponseContentDisposition: download ? 'attachment;' : 'inline;',
       });
 
       const signedUrl = await getSignedUrl(this.s3Client, command, {
