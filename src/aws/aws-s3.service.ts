@@ -5,6 +5,7 @@ import {
 } from '@nestjs/common';
 import {
   DeleteObjectCommand,
+  GetObjectCommand,
   PutObjectCommand,
   S3Client,
 } from '@aws-sdk/client-s3';
@@ -16,6 +17,7 @@ import {
   S3UploadRejected,
   S3UploadSuccessful,
 } from './interfaces/s3.interfaces';
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 
 @Injectable()
 export class AwsS3Service {
@@ -177,6 +179,25 @@ export class AwsS3Service {
     } catch (error) {
       this.logger.error(error);
       throw new InternalServerErrorException('Error deleting file from S3');
+    }
+  }
+
+  async getSignedUrl(key: string, expires: number = 60) {
+    try {
+      const command = new GetObjectCommand({
+        Bucket: this.bucketName,
+        Key: key,
+      });
+
+      const signedUrl = await getSignedUrl(this.s3Client, command, {
+        expiresIn: expires,
+      });
+      return signedUrl;
+    } catch (error) {
+      this.logger.error(error);
+      throw new InternalServerErrorException(
+        'Error getting signed URL from S3',
+      );
     }
   }
 }
