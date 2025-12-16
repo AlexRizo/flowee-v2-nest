@@ -225,6 +225,16 @@ export class TasksService {
     }
   }
 
+  async findTaskFiles(taskId: string) {
+    await this.findOne(taskId);
+
+    const files = await this.prisma.taskFiles.findMany({
+      where: { taskId },
+    });
+
+    return files;
+  }
+
   private handleDBErrors(error: any): never {
     if (
       error instanceof Prisma.PrismaClientKnownRequestError &&

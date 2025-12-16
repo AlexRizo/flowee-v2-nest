@@ -102,4 +102,10 @@ export class TasksController {
   ) {
     return this.tasksService.uploadFiles(id, files);
   }
+
+  @Auth()
+  @Get(':id/uploads')
+  findTaskFiles(@Param('id', ParseUUIDPipe) id: string) {
+    return this.tasksService.findTaskFiles(id);
+  }
 }
