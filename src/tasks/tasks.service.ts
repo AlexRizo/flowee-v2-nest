@@ -249,6 +249,53 @@ export class TasksService {
     return this.awsS3Service.getSignedUrl(file.key, 60, download);
   }
 
+  async uploadTaskFile(
+    taskId: string,
+    type: TaskFileType,
+    file: Express.Multer.File,
+  ) {
+    await this.findOne(taskId);
+
+    try {
+      const fileRes = await this.awsS3Service.uploadPrivateFile(
+        file,
+        `tasks/${type.toLowerCase()}`,
+      );
+
+      const taskFile = await this.prisma.taskFiles.create({
+        data: {
+          taskId,
+          key: fileRes.key,
+          fileName: fileRes.fileName,
+          type,
+        },
+      });
+
+      return taskFile;
+    } catch (error) {
+      this.handleDBErrors(error);
+    }
+  }
+
+  async deleteTaskFile(taskId: string, fileId: string) {
+    await this.findOne(taskId);
+
+    const file = await this.prisma.taskFiles.findFirst({
+      where: { id: fileId, taskId },
+    });
+
+    if (!file) {
+      throw new NotFoundException('No se encontró el archivo');
+    }
+
+    try {
+      await this.awsS3Service.deleteFile(file.key);
+      await this.prisma.taskFiles.delete({ where: { id: fileId } });
+    } catch (error) {
+      this.handleDBErrors(error);
+    }
+  }
+
   private handleDBErrors(error: any): never {
     if (
       error instanceof Prisma.PrismaClientKnownRequestError &&

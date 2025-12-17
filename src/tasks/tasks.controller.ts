@@ -9,14 +9,20 @@ import {
   UseInterceptors,
   Query,
   ParseBoolPipe,
+  Delete,
+  UploadedFile,
+  ParseEnumPipe,
 } from '@nestjs/common';
 import { TasksService } from './tasks.service';
 import { Auth } from 'src/auth/decorators/auth.decorator';
 import { GetUser } from 'src/auth/decorators/get-user.decorator';
 import { SpecialTasksService } from './special-tasks.service';
 import { CreateSpecialTaskDto } from './dto/special-task.dto';
-import { Role } from '@prisma/client';
-import { FileFieldsInterceptor } from '@nestjs/platform-express';
+import { Role, TaskFileType } from '@prisma/client';
+import {
+  FileFieldsInterceptor,
+  FileInterceptor,
+} from '@nestjs/platform-express';
 import { memoryStorage } from 'multer';
 import {
   type FilesPayload,
@@ -24,6 +30,7 @@ import {
 } from './pipes/task-files-payload.pipe';
 import { adminRoles } from 'src/common/role-selector';
 import { GetTasksQueryDto } from './dto/get-tasks-query.dto';
+import { TaskFilePayloadPipe } from './pipes/task-file-payload.pipe';
 
 @Controller('tasks')
 export class TasksController {
@@ -105,6 +112,23 @@ export class TasksController {
   }
 
   @Auth()
+  @Post(':id/upload/:type')
+  @UseInterceptors(
+    FileInterceptor('file', {
+      storage: memoryStorage(),
+    }),
+  )
+  uploadTaskFile(
+    @Param('type', new ParseEnumPipe(TaskFileType))
+    type: TaskFileType,
+    @Param('id', ParseUUIDPipe) id: string,
+    @UploadedFile(new TaskFilePayloadPipe({ required: true }))
+    file: Express.Multer.File,
+  ) {
+    return this.tasksService.uploadTaskFile(id, type, file);
+  }
+
+  @Auth()
   @Get(':id/uploads')
   findTaskFiles(@Param('id', ParseUUIDPipe) id: string) {
     return this.tasksService.findTaskFiles(id);
@@ -118,5 +142,19 @@ export class TasksController {
     @Query('download', ParseBoolPipe) download: boolean,
   ) {
     return this.tasksService.getTaskFileUrl(taskId, fileId, download);
+  }
+
+  @Auth(
+    ...adminRoles,
+    Role.DESIGNER_ADMIN,
+    Role.PUBLISHER_ADMIN,
+    Role.PUBLISHER_ADMIN,
+  )
+  @Delete(':taskId/uploads/:fileId')
+  deleteTaskFile(
+    @Param('taskId', ParseUUIDPipe) taskId: string,
+    @Param('fileId', ParseUUIDPipe) fileId: string,
+  ) {
+    return this.tasksService.deleteTaskFile(taskId, fileId);
   }
 }
