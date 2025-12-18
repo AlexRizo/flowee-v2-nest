@@ -157,4 +157,10 @@ export class TasksController {
   ) {
     return this.tasksService.deleteTaskFile(taskId, fileId);
   }
+
+  @Auth()
+  @Get(':taskId/chat')
+  findChatMessages(@Param('taskId', ParseUUIDPipe) taskId: string) {
+    return this.tasksService.findChatMessages(taskId);
+  }
 }

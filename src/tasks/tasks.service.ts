@@ -296,6 +296,19 @@ export class TasksService {
     }
   }
 
+  async findChatMessages(taskId: string) {
+    await this.findOne(taskId);
+
+    const messages = await this.prisma.message.findMany({
+      where: { taskId },
+      include: {
+        user: true,
+      },
+    });
+
+    return messages;
+  }
+
   private handleDBErrors(error: any): never {
     if (
       error instanceof Prisma.PrismaClientKnownRequestError &&

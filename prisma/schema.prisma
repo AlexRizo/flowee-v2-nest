@@ -41,6 +41,7 @@ model User {
   authorTasks   Task[]      @relation("AuthorTasks")
   assignedTasks Task[]      @relation("AssignedTasks")
   deleted       Boolean     @default(false)
+  messages      Message[]
 }
 
 // ? Tableros
@@ -118,6 +119,7 @@ model Task {
   ecommerceTask EcommerceTask?
   specialTask   SpecialTask?
   taskFiles     TaskFiles[]
+  messages      Message[]
 }
 
 model PrintTask {
@@ -158,4 +160,28 @@ model TaskFiles {
 
   taskId String
   task   Task   @relation(fields: [taskId], references: [id], onDelete: Cascade)
+}
+
+model Message {
+  id                 String              @id @default(uuid())
+  content            String
+  taskId             String
+  task               Task                @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  userId             String
+  user               User                @relation(fields: [userId], references: [id], onDelete: NoAction)
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+  messageAttachments MessageAttachment[]
+
+  @@index([taskId])
+}
+
+model MessageAttachment {
+  id        String   @id @default(uuid())
+  key       String   @unique
+  fileName  String
+  createdAt DateTime @default(now())
+
+  messageId String
+  message   Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
 }

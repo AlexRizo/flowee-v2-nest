@@ -18,6 +18,8 @@ import { WsAuth } from 'src/auth/decorators/ws-auth.decorator';
 import { Logger } from '@nestjs/common';
 import { AssignTaskDto } from 'src/boards/dto/assign-task.dto';
 import { getTaskStatus } from 'src/common/helpers/tasks';
+import { CreateMessageDto } from './dto/create-message.dto';
+import { TaskChatWsService } from './task-chat-ws.service';
 
 @WsAuth()
 @WebSocketGateway()
@@ -26,6 +28,7 @@ export class TaskWsGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   constructor(
     private readonly taskWsService: TaskWsService,
+    private readonly taskChatWsService: TaskChatWsService,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService<Env, true>,
   ) {}
@@ -159,6 +162,25 @@ export class TaskWsGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }
   }
 
+  @SubscribeMessage('join-task-chat')
+  async joinTaskChat(client: AuthSocket, { taskId }: { taskId: string }) {
+    try {
+      await client.join(this.getTaskRoom(taskId));
+    } catch (error) {
+      this.handleError(client, error);
+    }
+  }
+
+  @SubscribeMessage('send-message')
+  async sendMessage(client: AuthSocket, payload: CreateMessageDto) {
+    try {
+      const message = await this.taskChatWsService.createMessage(payload);
+      this.server.to(this.getTaskRoom(payload.taskId)).emit('message', message);
+    } catch (error) {
+      this.handleError(client, error);
+    }
+  }
+
   //* =================================================================
   //* 4. HELPERS PRIVADOS
   //* =================================================================
@@ -173,6 +195,10 @@ export class TaskWsGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   private getUserRoom(userId: string) {
     return `user-${userId}`;
+  }
+
+  private getTaskRoom(taskId: string) {
+    return `task-${taskId}-chat`;
   }
 
   private sendNotification(userId: string, message: string) {
