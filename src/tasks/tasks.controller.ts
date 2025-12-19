@@ -31,12 +31,14 @@ import {
 import { adminRoles } from 'src/common/role-selector';
 import { GetTasksQueryDto } from './dto/get-tasks-query.dto';
 import { TaskFilePayloadPipe } from './pipes/task-file-payload.pipe';
+import { TasksFilesService } from './tasks-files.service';
 
 @Controller('tasks')
 export class TasksController {
   constructor(
     private readonly tasksService: TasksService,
     private readonly specialTasksService: SpecialTasksService,
+    private readonly tasksFilesService: TasksFilesService,
   ) {}
 
   @Auth(...adminRoles, Role.DESIGNER_ADMIN, Role.PUBLISHER_ADMIN)
@@ -108,7 +110,7 @@ export class TasksController {
     )
     files: FilesPayload,
   ) {
-    return this.tasksService.uploadFiles(id, files);
+    return this.tasksFilesService.uploadFiles(id, files);
   }
 
   @Auth()
@@ -125,13 +127,13 @@ export class TasksController {
     @UploadedFile(new TaskFilePayloadPipe({ required: true }))
     file: Express.Multer.File,
   ) {
-    return this.tasksService.uploadTaskFile(id, type, file);
+    return this.tasksFilesService.uploadTaskFile(id, type, file);
   }
 
   @Auth()
   @Get(':id/uploads')
   findTaskFiles(@Param('id', ParseUUIDPipe) id: string) {
-    return this.tasksService.findTaskFiles(id);
+    return this.tasksFilesService.findTaskFiles(id);
   }
 
   @Auth()
@@ -141,7 +143,7 @@ export class TasksController {
     @Param('fileId', ParseUUIDPipe) fileId: string,
     @Query('download', ParseBoolPipe) download: boolean,
   ) {
-    return this.tasksService.getTaskFileUrl(taskId, fileId, download);
+    return this.tasksFilesService.getTaskFileUrl(taskId, fileId, download);
   }
 
   @Auth(
@@ -155,7 +157,7 @@ export class TasksController {
     @Param('taskId', ParseUUIDPipe) taskId: string,
     @Param('fileId', ParseUUIDPipe) fileId: string,
   ) {
-    return this.tasksService.deleteTaskFile(taskId, fileId);
+    return this.tasksFilesService.deleteTaskFile(taskId, fileId);
   }
 
   @Auth()

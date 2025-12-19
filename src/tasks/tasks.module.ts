@@ -6,11 +6,12 @@ import { BoardsModule } from 'src/boards/boards.module';
 import { UsersModule } from 'src/users/users.module';
 import { SpecialTasksService } from './special-tasks.service';
 import { AwsModule } from 'src/aws/aws.module';
+import { TasksFilesService } from './tasks-files.service';
 
 @Module({
   controllers: [TasksController],
   imports: [PrismaModule, BoardsModule, UsersModule, AwsModule],
-  providers: [TasksService, SpecialTasksService],
+  providers: [TasksService, SpecialTasksService, TasksFilesService],
   exports: [TasksService],
 })
 export class TasksModule {}
