@@ -32,6 +32,8 @@ import { adminRoles } from 'src/common/role-selector';
 import { GetTasksQueryDto } from './dto/get-tasks-query.dto';
 import { TaskFilePayloadPipe } from './pipes/task-file-payload.pipe';
 import { TasksFilesService } from './tasks-files.service';
+import { CreateDeliveryDto } from 'src/deliveries/dto/create-delivery.dto';
+import { DeliveriesService } from 'src/deliveries/deliveries.service';
 
 @Controller('tasks')
 export class TasksController {
@@ -39,6 +41,7 @@ export class TasksController {
     private readonly tasksService: TasksService,
     private readonly specialTasksService: SpecialTasksService,
     private readonly tasksFilesService: TasksFilesService,
+    private readonly deliveriesService: DeliveriesService,
   ) {}
 
   @Auth(...adminRoles, Role.DESIGNER_ADMIN, Role.PUBLISHER_ADMIN)
@@ -164,5 +167,28 @@ export class TasksController {
   @Get(':taskId/chat')
   findChatMessages(@Param('taskId', ParseUUIDPipe) taskId: string) {
     return this.tasksService.findChatMessages(taskId);
+  }
+
+  @Auth(
+    ...adminRoles,
+    Role.PUBLISHER,
+    Role.PUBLISHER_ADMIN,
+    Role.DESIGNER_ADMIN,
+  )
+  @Post(':taskId/deliveries')
+  createDelivery(
+    @Param('taskId', ParseUUIDPipe) taskId: string,
+    @Body() { name }: CreateDeliveryDto,
+  ) {
+    return this.deliveriesService.create({
+      name,
+      taskId,
+    });
+  }
+
+  @Auth()
+  @Get(':taskId/deliveries')
+  findDeliveriesByTask(@Param('taskId', ParseUUIDPipe) taskId: string) {
+    return this.deliveriesService.findDeliveriesByTask(taskId);
   }
 }

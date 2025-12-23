@@ -7,10 +7,17 @@ import { UsersModule } from 'src/users/users.module';
 import { SpecialTasksService } from './special-tasks.service';
 import { AwsModule } from 'src/aws/aws.module';
 import { TasksFilesService } from './tasks-files.service';
+import { DeliveriesModule } from 'src/deliveries/deliveries.module';
 
 @Module({
   controllers: [TasksController],
-  imports: [PrismaModule, BoardsModule, UsersModule, AwsModule],
+  imports: [
+    PrismaModule,
+    BoardsModule,
+    UsersModule,
+    AwsModule,
+    DeliveriesModule,
+  ],
   providers: [TasksService, SpecialTasksService, TasksFilesService],
   exports: [TasksService],
 })

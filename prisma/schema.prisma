@@ -120,6 +120,7 @@ model Task {
   specialTask   SpecialTask?
   taskFiles     TaskFiles[]
   messages      Message[]
+  deliveries    Delivery[]
 }
 
 model PrintTask {
@@ -184,4 +185,32 @@ model MessageAttachment {
 
   messageId String
   message   Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
+}
+
+model Delivery {
+  id        String    @id @default(uuid())
+  name      String
+  taskId    String
+  task      Task      @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  versions  Version[]
+}
+
+enum VersionStatus {
+  PENDING
+  REJECTED
+  ACCEPTED
+}
+
+model Version {
+  id             String        @id @default(uuid())
+  description    String
+  attachment     String
+  attachmentName String
+  status         VersionStatus @default(PENDING)
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  deliveryId     String
+  delivery       Delivery      @relation(fields: [deliveryId], references: [id], onDelete: Cascade)
 }

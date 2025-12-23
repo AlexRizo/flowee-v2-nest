@@ -8,6 +8,8 @@ import { TasksModule } from './tasks/tasks.module';
 import { AwsModule } from './aws/aws.module';
 import { validateEnv } from './config/env.validation';
 import { TaskWsModule } from './task-ws/task-ws.module';
+import { DeliveriesModule } from './deliveries/deliveries.module';
+import { VersionsModule } from './versions/versions.module';
 
 @Module({
   imports: [
@@ -23,6 +25,8 @@ import { TaskWsModule } from './task-ws/task-ws.module';
     TasksModule,
     AwsModule,
     TaskWsModule,
+    DeliveriesModule,
+    VersionsModule,
   ],
   controllers: [],
   providers: [],
