@@ -1,5 +1,14 @@
-import { Controller, Get, Post, Body, Param, Delete } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Param,
+  Delete,
+  Patch,
+} from '@nestjs/common';
 import { VersionsService } from './versions.service';
+import { CheckVersionDto } from './dto/check-version.dto';
 
 @Controller('versions')
 export class VersionsController {
@@ -33,6 +42,14 @@ export class VersionsController {
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.versionsService.findOne(id);
+  }
+
+  @Patch(':versionId/check')
+  check(
+    @Param('versionId') versionId: string,
+    @Body() versionDataDto: CheckVersionDto,
+  ) {
+    return this.versionsService.check(versionId, versionDataDto);
   }
 
   @Delete(':id')

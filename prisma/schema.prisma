@@ -209,6 +209,7 @@ model Version {
   attachment     String
   attachmentName String
   status         VersionStatus @default(PENDING)
+  comment        String?
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
   deliveryId     String

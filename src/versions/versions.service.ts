@@ -1,7 +1,13 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { AwsS3Service } from 'src/aws/aws-s3.service';
 import { DeliveriesService } from 'src/deliveries/deliveries.service';
 import { PrismaService } from 'src/prisma/prisma.service';
+import { CheckVersionDto } from './dto/check-version.dto';
+import { VersionStatus } from '@prisma/client';
 
 @Injectable()
 export class VersionsService {
@@ -44,12 +50,44 @@ export class VersionsService {
   }
 
   async findOne(id: string) {
-    const version = await this.prisma.version.findUnique({ where: { id } });
+    const version = await this.prisma.version.findUnique({
+      where: { id },
+    });
 
     if (!version) {
       throw new NotFoundException('Version not found');
     }
     return version;
+  }
+
+  async check(versionId: string, versionDataDto: CheckVersionDto) {
+    const { deliveryId } = await this.findOne(versionId);
+
+    const { versions: deliveryVersions } =
+      await this.deliveriesService.findOne(deliveryId);
+
+    const anyVersionApproved = deliveryVersions.find(
+      version => version.status === VersionStatus.ACCEPTED,
+    );
+
+    if (anyVersionApproved && anyVersionApproved.id !== versionId) {
+      throw new BadRequestException('Ya existe una version aprobada');
+    }
+
+    const pendingVersion = deliveryVersions.filter(
+      version => version.status === VersionStatus.PENDING,
+    );
+
+    if (pendingVersion.length > 1) {
+      throw new BadRequestException(
+        'No puede haber mas de una version pendiente',
+      );
+    }
+
+    return await this.prisma.version.update({
+      where: { id: versionId },
+      data: versionDataDto,
+    });
   }
 
   async remove(id: string) {

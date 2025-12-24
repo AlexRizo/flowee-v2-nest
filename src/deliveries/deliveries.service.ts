@@ -24,7 +24,11 @@ export class DeliveriesService {
   async findDeliveriesByTask(taskId: string) {
     const reliveries = await this.prisma.delivery.findMany({
       include: {
-        versions: true,
+        versions: {
+          orderBy: {
+            createdAt: 'asc',
+          },
+        },
       },
       where: { taskId },
     });
