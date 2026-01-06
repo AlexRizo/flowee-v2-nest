@@ -28,6 +28,21 @@ export class VersionsService {
   }) {
     const { taskId } = await this.deliveriesService.findOne(deliveryId);
 
+    const anyVersionPendingOrAccepted = await this.prisma.version.findFirst({
+      where: {
+        deliveryId,
+        status: {
+          in: [VersionStatus.PENDING, VersionStatus.ACCEPTED],
+        },
+      },
+    });
+
+    if (anyVersionPendingOrAccepted) {
+      throw new BadRequestException(
+        'Ya existe una version pendiente o aprobada.',
+      );
+    }
+
     const { key, fileName } = await this.s3Service.uploadPrivateFile(
       attachment,
       `tasks/${taskId}/versions`,

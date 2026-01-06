@@ -12,6 +12,7 @@ import { PrismaService } from 'src/prisma/prisma.service';
 import { UsersService } from 'src/users/users.service';
 import { UpdateTaskStatusDto } from './dto/udpate-task-status.dto';
 import { AssignTaskDto } from 'src/boards/dto/assign-task.dto';
+import { adminRoles } from 'src/common/role-selector';
 
 @Injectable()
 export class TasksService {
@@ -82,7 +83,19 @@ export class TasksService {
   // ? Este método obtiene las tareas de un tablero asignadas al usuario.
   async findMyTasksByBoard(boardId: string, userId: string) {
     await this.boardsService.findOne(boardId);
+
     const { role } = await this.usersService.findOne(userId);
+
+    const userIsInBoard = await this.boardsService.userIsInBoard(
+      boardId,
+      userId,
+    );
+
+    if (!userIsInBoard && !adminRoles.includes(role)) {
+      throw new ForbiddenException(
+        'No tienes permiso para acceder a este recurso',
+      );
+    }
 
     const where =
       role === Role.DESIGNER_ADMIN || role === Role.DESIGNER

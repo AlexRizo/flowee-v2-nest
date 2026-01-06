@@ -28,7 +28,7 @@ import {
   type FilesPayload,
   TaskFilesPayloadPipe,
 } from './pipes/task-files-payload.pipe';
-import { adminRoles } from 'src/common/role-selector';
+import { adminRoles, publisherRoles } from 'src/common/role-selector';
 import { GetTasksQueryDto } from './dto/get-tasks-query.dto';
 import { TaskFilePayloadPipe } from './pipes/task-file-payload.pipe';
 import { TasksFilesService } from './tasks-files.service';
@@ -116,7 +116,7 @@ export class TasksController {
     return this.tasksFilesService.uploadFiles(id, files);
   }
 
-  @Auth()
+  @Auth(...adminRoles, ...publisherRoles, Role.DESIGNER_ADMIN)
   @Post(':id/upload/:type')
   @UseInterceptors(
     FileInterceptor('file', {
@@ -149,12 +149,7 @@ export class TasksController {
     return this.tasksFilesService.getTaskFileUrl(taskId, fileId, download);
   }
 
-  @Auth(
-    ...adminRoles,
-    Role.DESIGNER_ADMIN,
-    Role.PUBLISHER_ADMIN,
-    Role.PUBLISHER_ADMIN,
-  )
+  @Auth(...adminRoles, ...publisherRoles, Role.DESIGNER_ADMIN)
   @Delete(':taskId/uploads/:fileId')
   deleteTaskFile(
     @Param('taskId', ParseUUIDPipe) taskId: string,
@@ -169,12 +164,7 @@ export class TasksController {
     return this.tasksService.findChatMessages(taskId);
   }
 
-  @Auth(
-    ...adminRoles,
-    Role.PUBLISHER,
-    Role.PUBLISHER_ADMIN,
-    Role.DESIGNER_ADMIN,
-  )
+  @Auth(...adminRoles, ...publisherRoles, Role.DESIGNER_ADMIN)
   @Post(':taskId/deliveries')
   createDelivery(
     @Param('taskId', ParseUUIDPipe) taskId: string,

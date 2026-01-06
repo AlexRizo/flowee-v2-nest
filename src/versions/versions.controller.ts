@@ -10,6 +10,9 @@ import {
 } from '@nestjs/common';
 import { VersionsService } from './versions.service';
 import { CheckVersionDto } from './dto/check-version.dto';
+import { Auth } from 'src/auth/decorators/auth.decorator';
+import { adminRoles, publisherRoles } from 'src/common/role-selector';
+import { Role } from '@prisma/client';
 
 @Controller('versions')
 export class VersionsController {
@@ -53,6 +56,7 @@ export class VersionsController {
     return this.versionsService.findOne(id);
   }
 
+  @Auth(...adminRoles, ...publisherRoles, Role.DESIGNER_ADMIN)
   @Patch(':versionId/check')
   check(
     @Param('versionId') versionId: string,
