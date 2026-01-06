@@ -6,6 +6,7 @@ import {
   Param,
   Delete,
   Patch,
+  Query,
 } from '@nestjs/common';
 import { VersionsService } from './versions.service';
 import { CheckVersionDto } from './dto/check-version.dto';
@@ -32,6 +33,14 @@ export class VersionsController {
       deliveryId,
       attachment,
     });
+  }
+
+  @Get(':versionId/upload')
+  getFile(
+    @Param('versionId') versionId: string,
+    @Query('download') download: boolean,
+  ) {
+    return this.versionsService.getFile(versionId, download);
   }
 
   @Get()

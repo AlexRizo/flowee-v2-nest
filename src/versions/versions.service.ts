@@ -95,4 +95,10 @@ export class VersionsService {
 
     return await this.prisma.version.delete({ where: { id } });
   }
+
+  async getFile(id: string, download: boolean) {
+    const version = await this.findOne(id);
+
+    return this.s3Service.getSignedUrl(version.attachment, 60, download);
+  }
 }
